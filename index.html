@@ -9,7 +9,6 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&family=Inter:wght@400;600&display=swap"
         rel="stylesheet">
     <style>
-        /* CSS IDÊNTICO AO ANTERIOR - MANTER VISUAL */
         :root {
             --primary: #8b5cf6;
             --primary-glow: rgba(139, 92, 246, 0.5);
@@ -36,6 +35,12 @@
             color: var(--text-main);
             font-family: var(--font-body);
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        main {
+            flex-grow: 1;
         }
 
         .header {
@@ -52,6 +57,7 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 24px;
+            width: 100%;
         }
 
         .header-content {
@@ -68,6 +74,7 @@
             cursor: pointer;
             color: white;
             letter-spacing: -1px;
+            white-space: nowrap;
         }
 
         .logo span {
@@ -134,9 +141,9 @@
 
         .cards-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 25px;
-            margin-bottom: 60px;
+            margin-bottom: 40px;
         }
 
         .card {
@@ -230,6 +237,41 @@
             display: flex;
             justify-content: space-between;
             border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 60px;
+            flex-wrap: wrap;
+        }
+
+        .page-btn {
+            background: #27272a;
+            border: 1px solid var(--border);
+            color: #a1a1aa;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .page-btn:hover {
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .page-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-glow);
         }
 
         #detailsView {
@@ -330,6 +372,11 @@
             background: #333;
         }
 
+        .poll-opt.selected {
+            border: 1px solid var(--primary);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
         .poll-bar {
             position: absolute;
             top: 0;
@@ -356,6 +403,44 @@
             margin-top: auto;
         }
 
+        .socials {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .social-link {
+            width: 40px;
+            height: 40px;
+            background: #222;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.3s;
+            fill: white;
+        }
+
+        .social-link:hover {
+            background: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .social-link svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .author-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: #ccc;
+            margin-top: 5px;
+        }
+
         @keyframes fadeUp {
             from {
                 opacity: 0;
@@ -371,6 +456,11 @@
         @media(max-width: 768px) {
             .header-content {
                 flex-direction: column;
+                gap: 15px;
+            }
+
+            .search-box {
+                max-width: 100%;
             }
 
             .article-title {
@@ -379,6 +469,10 @@
 
             .detail-hero-container {
                 height: 300px;
+            }
+
+            .nav-scroll {
+                width: 100%;
             }
         }
     </style>
@@ -411,6 +505,7 @@
             <div id="newsGrid" class="cards-grid">
                 <div style="color:#666; font-size:1.1rem;">Carregando feed...</div>
             </div>
+            <div id="pagination" class="pagination-container"></div>
         </div>
 
         <div id="detailsView">
@@ -421,13 +516,18 @@
                 <div class="hero-overlay">
                     <span id="detailCategory" class="tag" style="margin-bottom:15px;">Categoria</span>
                     <h1 id="detailTitle" class="article-title">Titulo</h1>
-                    <div style="font-size:0.9rem; color:#ccc;">📅 <span id="detailDate">Data</span></div>
+                    <div style="font-size:0.9rem; color:#ccc; display:flex; flex-direction:column; gap:5px;">
+                        <span>📅 <span id="detailDate">Data</span></span>
+                        <span class="author-box">✍️ Escrito por <strong style="color:white;">Kauan Bryan</strong></span>
+                    </div>
                 </div>
             </div>
             <div class="content-wrapper">
                 <div id="videoArea"></div>
                 <div id="articleBody" class="article-body"></div>
-                <div id="linkArea" style="text-align:center; margin-top:50px;"></div>
+                <div id="sourceArea"
+                    style="margin-top:40px; border-top:1px solid var(--border); padding-top:20px; font-size:0.9rem; color:#888;">
+                </div>
             </div>
         </div>
     </main>
@@ -435,7 +535,33 @@
     <footer class="site-footer">
         <div class="container">
             <div class="logo" style="margin-bottom: 10px; font-size: 1.5rem;">NERD<span>GEEK</span></div>
-            <div style="color: #444; font-size: 0.8rem;">&copy; 2025 NerdGeek. Powered by Firebase.</div>
+            <div class="socials">
+                <a href="#" class="social-link" title="Instagram">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                    </svg>
+                </a>
+
+                <a href="#" class="social-link" title="TikTok">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
+                    </svg>
+                </a>
+
+                <a href="#" class="social-link" title="YouTube">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
+                    </svg>
+                </a>
+            </div>
+
+            <div style="color: #444; font-size: 0.8rem; line-height: 1.6;">
+                &copy; 2025 NerdGeek. Powered by Firebase.<br>
+                Projetado por <strong style="color: var(--primary);">Kauan Bryan</strong>.
+            </div>
         </div>
     </footer>
 
@@ -443,7 +569,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js";
         import { getFirestore, collection, getDocs, doc, updateDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js";
 
-        // --- COLE SUA CONFIGURAÇÃO FIREBASE AQUI ---
         const firebaseConfig = {
             apiKey: "AIzaSyCCCKb6EZKESQNIpE_CNKu3G7iaFS2Ini4",
             authDomain: "nerdgeek-b2bd4.firebaseapp.com",
@@ -458,11 +583,12 @@
         const db = getFirestore(app);
         const newsCollection = collection(db, "noticias");
 
+        const ITEMS_PER_PAGE = 6;
         let allNews = [];
         let currentFilter = 'all';
         let currentSearch = '';
+        let currentPage = 1;
 
-        // Carregamento Inicial (Ouvinte em tempo real para atualizações automáticas)
         onSnapshot(query(newsCollection, orderBy("dateParsed", "desc")), (snapshot) => {
             allNews = [];
             snapshot.forEach(doc => allNews.push({ id: doc.id, ...doc.data() }));
@@ -471,7 +597,9 @@
 
         function renderGrid() {
             const grid = document.getElementById('newsGrid');
+            const paginationDiv = document.getElementById('pagination');
             grid.innerHTML = '';
+            paginationDiv.innerHTML = '';
 
             const filtered = allNews.filter(item => {
                 const matchCat = currentFilter === 'all' || item.category === currentFilter;
@@ -479,7 +607,6 @@
                 return matchCat && matchSearch;
             });
 
-            // Atualiza Título
             const pageTitle = document.getElementById('pageTitle');
             if (currentSearch) pageTitle.innerHTML = `Busca: <span style="color:var(--primary)">"${currentSearch}"</span>`;
             else pageTitle.innerHTML = currentFilter === 'all' ? 'Destaques' : `Categoria: <span style="color:var(--primary)">${currentFilter.toUpperCase()}</span>`;
@@ -489,28 +616,39 @@
                 return;
             }
 
-            filtered.forEach((news, idx) => {
+            const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+            if (currentPage > totalPages) currentPage = 1;
+
+            const start = (currentPage - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const pagedNews = filtered.slice(start, end);
+
+            pagedNews.forEach((news, idx) => {
                 const card = document.createElement('article');
                 card.className = 'card';
                 card.style.animationDelay = `${idx * 0.05}s`;
-
-                // Imagem Fallback
                 const img = news.image || 'https://placehold.co/800x450/222/FFF';
-
                 card.innerHTML = `
                     <div class="img-container"><img src="${img}" alt="${news.title}" onerror="this.src='https://placehold.co/800x450/222/FFF'"></div>
                     <div class="card-content">
                         <span class="tag ${news.category}">${news.category}</span>
                         <h3>${news.title}</h3>
-                        <div class="meta">
-                            <span>${news.dateDisplay}</span>
-                            ${news.poll ? '<span style="color:var(--accent); font-weight:600;">📊 Enquete</span>' : ''}
-                        </div>
+                        <div class="meta"><span>${news.dateDisplay}</span>${news.poll ? '<span style="color:var(--accent); font-weight:600;">📊 Enquete</span>' : ''}</div>
                     </div>
                 `;
                 card.onclick = () => openDetails(news.id);
                 grid.appendChild(card);
             });
+
+            if (totalPages > 1) {
+                for (let i = 1; i <= totalPages; i++) {
+                    const btn = document.createElement('button');
+                    btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                    btn.innerText = i;
+                    btn.onclick = () => { currentPage = i; renderGrid(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+                    paginationDiv.appendChild(btn);
+                }
+            }
         }
 
         window.openDetails = (id) => {
@@ -520,14 +658,12 @@
             document.getElementById('feedView').style.display = 'none';
             document.getElementById('detailsView').style.display = 'block';
 
-            // Preenche dados
             document.getElementById('detailTitle').innerText = news.title;
             document.getElementById('detailCategory').className = `tag ${news.category}`;
             document.getElementById('detailCategory').innerText = news.category;
             document.getElementById('detailDate').innerText = news.dateDisplay;
             document.getElementById('detailImage').src = news.image;
 
-            // Vídeo
             const vidArea = document.getElementById('videoArea');
             vidArea.innerHTML = '';
             if (news.videoUrl) {
@@ -537,11 +673,8 @@
                 if (vidId) vidArea.innerHTML = `<div class="video-wrapper"><iframe src="https://www.youtube.com/embed/${vidId}" frameborder="0" allowfullscreen></iframe></div>`;
             }
 
-            // Link Externo
-            document.getElementById('linkArea').innerHTML = news.externalLink
-                ? `<a href="${news.externalLink}" target="_blank" style="display:inline-block; background:var(--accent); color:#000; font-weight:bold; padding:12px 30px; border-radius:50px; text-decoration:none;">LER MATÉRIA ORIGINAL ↗</a>` : '';
+            document.getElementById('sourceArea').innerHTML = news.sourceName ? `<strong>Fonte:</strong> ${news.sourceName}` : '';
 
-            // Texto + Enquete
             const contentDiv = document.getElementById('articleBody');
             const paragraphs = news.content.split('\n').filter(p => p.trim() !== '');
             let html = '';
@@ -549,82 +682,70 @@
 
             paragraphs.forEach((p, i) => {
                 html += `<p>${p}</p>`;
-                if (i === insertIdx - 1 && news.poll) {
-                    html += `<div id="poll-container">${generatePollHTML(news)}</div>`;
-                }
+                if (i === insertIdx - 1 && news.poll) { html += `<div id="poll-container">${generatePollHTML(news)}</div>`; }
             });
-            // Fallback se texto for curto
-            if (paragraphs.length <= 2 && news.poll && !html.includes('embed-poll')) {
-                html += `<div id="poll-container">${generatePollHTML(news)}</div>`;
-            }
-
+            if (paragraphs.length <= 2 && news.poll && !html.includes('embed-poll')) { html += `<div id="poll-container">${generatePollHTML(news)}</div>`; }
             contentDiv.innerHTML = html;
             window.scrollTo(0, 0);
         };
 
         function generatePollHTML(news) {
             const total = news.poll.options.reduce((a, b) => a + b.votes, 0);
-            const userVote = localStorage.getItem(`vote_${news.id}`); // Voto local apenas para UI
-
+            const userVote = localStorage.getItem(`vote_${news.id}`);
             let opts = '';
             news.poll.options.forEach((opt, idx) => {
                 const percent = total === 0 ? 0 : Math.round((opt.votes / total) * 100);
                 const isSel = userVote == idx ? 'selected' : '';
                 const barStyle = userVote !== null ? `width:${percent}%` : 'width:0';
                 const pctText = userVote !== null ? `<span>${percent}%</span>` : '';
-
-                opts += `
-                    <div class="poll-opt ${isSel}" onclick="window.submitVote('${news.id}', ${idx})">
-                        <div class="poll-bar" style="${barStyle}"></div>
-                        <div class="poll-content">
-                            <span>${opt.text}</span>
-                            ${pctText}
-                        </div>
-                    </div>
-                `;
+                opts += `<div class="poll-opt ${isSel}" onclick="window.submitVote('${news.id}', ${idx})"><div class="poll-bar" style="${barStyle}"></div><div class="poll-content"><span>${opt.text}</span>${pctText}</div></div>`;
             });
-
-            return `
-                <div class="embed-poll">
-                    <div style="font-size:1.3rem; margin-bottom:20px; color:white;">📊 ${news.poll.question}</div>
-                    <div>${opts}</div>
-                    <div style="text-align:right; font-size:0.75rem; color:#666; margin-top:10px;">${total} votos</div>
-                </div>
-            `;
+            return `<div class="embed-poll"><div style="font-size:1.3rem; margin-bottom:20px; color:white;">📊 ${news.poll.question}</div><div>${opts}</div><div style="text-align:right; font-size:0.75rem; color:#666; margin-top:10px;">${total} votos</div></div>`;
         }
 
-        // Função de Voto (Realtime + Persistência)
-        window.submitVote = async (id, optIdx) => {
-            const hasVoted = localStorage.getItem(`vote_${id}`);
-            if (hasVoted !== null) return; // Simples bloqueio de voto duplicado no mesmo browser
-
+        // --- LÓGICA DE VOTO ATUALIZADA (Cancelamento e Troca) ---
+        window.submitVote = async (id, newOptIdx) => {
             const news = allNews.find(n => n.id === id);
             if (!news) return;
 
-            // Atualiza Objeto Local
-            news.poll.options[optIdx].votes++;
+            const savedVoteStr = localStorage.getItem(`vote_${id}`);
+            const oldOptIdx = savedVoteStr !== null ? parseInt(savedVoteStr) : null;
 
-            // Salva no Firestore
             try {
-                const docRef = doc(db, "noticias", id);
-                await updateDoc(docRef, {
-                    poll: news.poll
-                });
-                localStorage.setItem(`vote_${id}`, optIdx);
+                // Cenário 1: Cancelar (Clicou no mesmo que já votou)
+                if (oldOptIdx === newOptIdx) {
+                    news.poll.options[oldOptIdx].votes--; // Remove o voto
+                    if (news.poll.options[oldOptIdx].votes < 0) news.poll.options[oldOptIdx].votes = 0; // Segurança
+                    localStorage.removeItem(`vote_${id}`);
+                }
+                // Cenário 2: Trocar de Voto (Tinha um, clicou em outro)
+                else if (oldOptIdx !== null) {
+                    news.poll.options[oldOptIdx].votes--; // Remove o antigo
+                    if (news.poll.options[oldOptIdx].votes < 0) news.poll.options[oldOptIdx].votes = 0;
 
-                // Atualiza UI (O listener onSnapshot faria isso, mas aqui damos feedback imediato)
+                    news.poll.options[newOptIdx].votes++; // Adiciona o novo
+                    localStorage.setItem(`vote_${id}`, newOptIdx);
+                }
+                // Cenário 3: Voto Novo (Primeira vez)
+                else {
+                    news.poll.options[newOptIdx].votes++;
+                    localStorage.setItem(`vote_${id}`, newOptIdx);
+                }
+
+                // Salvar no Firebase
+                const docRef = doc(db, "noticias", id);
+                await updateDoc(docRef, { poll: news.poll });
+
+                // Atualizar UI
                 const container = document.getElementById('poll-container');
                 if (container) container.innerHTML = generatePollHTML(news);
 
-            } catch (e) {
-                console.error("Erro ao votar:", e);
-                alert("Erro ao computar voto.");
-            }
+            } catch (e) { console.error("Erro ao votar:", e); alert("Erro ao computar voto."); }
         };
 
-        // Filtros e Navegação
         window.filterNews = (cat, el) => {
             currentFilter = cat;
+            currentPage = 1;
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             if (el) el.classList.add('active');
             window.showHome();
@@ -637,7 +758,9 @@
         };
 
         document.getElementById('searchInput').addEventListener('input', (e) => {
-            currentSearch = e.target.value; renderGrid();
+            currentSearch = e.target.value;
+            currentPage = 1;
+            renderGrid();
         });
     </script>
 </body>

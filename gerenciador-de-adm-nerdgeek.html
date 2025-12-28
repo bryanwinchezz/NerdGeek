@@ -8,7 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=Inter:wght@400;600&display=swap"
         rel="stylesheet">
     <style>
-        /* Mantendo o mesmo visual Stark Tech */
         :root {
             --primary: #8b5cf6;
             --primary-hover: #7c3aed;
@@ -139,10 +138,6 @@
             display: none;
         }
 
-        .btn-cancel:hover {
-            background: #52525b;
-        }
-
         .news-item {
             display: flex;
             background: rgba(255, 255, 255, 0.03);
@@ -153,11 +148,6 @@
             align-items: center;
             gap: 15px;
             transition: 0.2s;
-        }
-
-        .news-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: #52525b;
         }
 
         .thumb {
@@ -210,19 +200,9 @@
             color: #06b6d4;
         }
 
-        .btn-edit:hover {
-            background: #06b6d4;
-            color: black;
-        }
-
         .btn-del {
             background: rgba(239, 68, 68, 0.1);
             color: #ef4444;
-        }
-
-        .btn-del:hover {
-            background: #ef4444;
-            color: white;
         }
 
         #toast-container {
@@ -259,13 +239,16 @@
             }
         }
 
+        /* Mobile Fixes */
         @media(max-width: 900px) {
             .layout {
                 grid-template-columns: 1fr;
             }
 
             .panel {
-                position: static;
+                position: relative;
+                top: 0;
+                margin-bottom: 30px;
             }
         }
     </style>
@@ -310,7 +293,7 @@
             <div class="form-group" style="margin-top: 20px;">
                 <label>Extras</label>
                 <input type="text" id="videoUrl" placeholder="YouTube URL" style="margin-bottom:5px;">
-                <input type="text" id="externalLink" placeholder="Link Externo">
+                <input type="text" id="sourceName" placeholder="Nome da Fonte (ex: Omelete, IGN)">
             </div>
 
             <button class="btn btn-primary" id="saveBtn">PUBLICAR NOTÍCIA</button>
@@ -327,11 +310,9 @@
     </div>
 
     <script type="module">
-        // Importando Firebase do CDN
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js";
 
-        // --- COLE SUA CONFIGURAÇÃO FIREBASE AQUI (SUBSTITUA AS CHAVES) ---
         const firebaseConfig = {
             apiKey: "AIzaSyCCCKb6EZKESQNIpE_CNKu3G7iaFS2Ini4",
             authDomain: "nerdgeek-b2bd4.firebaseapp.com",
@@ -342,56 +323,34 @@
             measurementId: "G-NBE1GRGFTT"
         };
 
-        // Inicializa Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const newsCollection = collection(db, "noticias");
 
-        // --- FUNÇÕES GLOBAIS (Para o HTML acessar) ---
-
-        // 1. Ouvinte em Tempo Real (Atualiza a lista sozinho quando algo muda no banco)
         onSnapshot(query(newsCollection, orderBy("dateParsed", "desc")), (snapshot) => {
             const list = document.getElementById('list');
             document.getElementById('count').innerText = `(${snapshot.size})`;
             list.innerHTML = '';
-
-            if (snapshot.empty) {
-                list.innerHTML = `<div style="text-align:center; padding:40px; color:#555;">Nenhuma notícia no banco.</div>`;
-                return;
-            }
-
+            if (snapshot.empty) { list.innerHTML = `<div style="text-align:center; padding:40px; color:#555;">Nenhuma notícia no banco.</div>`; return; }
             snapshot.forEach(docSnap => {
                 const item = { id: docSnap.id, ...docSnap.data() };
                 const hasPoll = item.poll ? '<span style="color:#a78bfa; margin-left:5px;">📊 Enquete</span>' : '';
-
-                // Cria elemento HTML
                 const div = document.createElement('div');
                 div.className = 'news-item';
                 div.innerHTML = `
                     <img src="${item.image}" class="thumb" onerror="this.src='https://placehold.co/60'">
-                    <div class="info">
-                        <strong>${item.title}</strong>
-                        <span>${item.category}</span>
-                        <span style="color:#666;">• ${item.dateDisplay} ${hasPoll}</span>
-                    </div>
-                    <div class="actions">
-                        <button class="icon-btn btn-edit" data-id="${item.id}">✏️</button>
-                        <button class="icon-btn btn-del" data-id="${item.id}">🗑️</button>
-                    </div>
+                    <div class="info"><strong>${item.title}</strong><span>${item.category}</span><span style="color:#666;">• ${item.dateDisplay} ${hasPoll}</span></div>
+                    <div class="actions"><button class="icon-btn btn-edit">✏️</button><button class="icon-btn btn-del">🗑️</button></div>
                 `;
-
-                // Adiciona Listeners nos botões (Jeito seguro do Module)
                 div.querySelector('.btn-edit').onclick = () => editItem(item);
                 div.querySelector('.btn-del').onclick = () => delItem(item.id);
                 list.appendChild(div);
             });
         });
 
-        // 2. Salvar / Publicar
         document.getElementById('saveBtn').onclick = async () => {
             const btn = document.getElementById('saveBtn');
-            btn.innerText = "Processando...";
-            btn.disabled = true;
+            btn.innerText = "Processando..."; btn.disabled = true;
 
             const id = document.getElementById('editId').value;
             const title = document.getElementById('title').value.trim();
@@ -399,62 +358,43 @@
             const image = document.getElementById('image').value.trim() || 'https://placehold.co/800x450/18181b/FFF?text=NerdGeek';
             const content = document.getElementById('content').value.trim();
             const videoUrl = document.getElementById('videoUrl').value.trim();
-            const externalLink = document.getElementById('externalLink').value.trim();
+            const sourceName = document.getElementById('sourceName').value.trim();
 
             const pollQ = document.getElementById('pollQuestion').value.trim();
             const pollOpt1 = document.getElementById('pollOpt1').value.trim();
             const pollOpt2 = document.getElementById('pollOpt2').value.trim();
 
-            if (!title || !content) {
-                showToast("Título e Conteúdo obrigatórios!", "error");
-                btn.innerText = "PUBLICAR NOTÍCIA"; btn.disabled = false;
-                return;
-            }
+            if (!title || !content) { showToast("Título e Conteúdo obrigatórios!", "error"); btn.innerText = "PUBLICAR NOTÍCIA"; btn.disabled = false; return; }
 
             let poll = null;
             if (pollQ && pollOpt1 && pollOpt2) {
-                poll = {
-                    question: pollQ,
-                    options: [{ text: pollOpt1, votes: 0 }, { text: pollOpt2, votes: 0 }]
-                };
+                poll = { question: pollQ, options: [{ text: pollOpt1, votes: 0 }, { text: pollOpt2, votes: 0 }] };
             }
 
             const now = new Date();
             const payload = {
-                title, category, image, content, videoUrl, externalLink,
+                title, category, image, content, videoUrl, sourceName,
                 dateDisplay: now.toLocaleDateString('pt-BR'),
-                dateParsed: now.getTime() // Útil para ordenar
+                dateParsed: now.getTime()
             };
 
-            // Se for enquete nova ou editada, adiciona. Se editou texto mas manteve enquete, lógica abaixo trataria (simplificado aqui)
             if (poll) payload.poll = poll;
 
             try {
                 if (id) {
-                    // EDITAR
-                    const docRef = doc(db, "noticias", id);
-                    // Nota: Se não enviar 'poll', ele mantém a antiga se usarmos merge? Não, update sobrescreve campos passados.
-                    // Para simplificar: Se usuário não preencheu enquete no form de edição, tentamos não apagar a existente se ela não foi o foco
-                    // Mas para garantir consistência, vamos assumir que o form reflete o estado final.
-                    await updateDoc(docRef, payload);
+                    await updateDoc(doc(db, "noticias", id), payload);
                     showToast("Notícia atualizada!");
                 } else {
-                    // CRIAR
                     if (poll) payload.poll = poll;
                     await addDoc(newsCollection, payload);
-                    showToast("Notícia enviada para a nuvem!");
+                    showToast("Notícia enviada!");
                 }
                 resetForm();
-            } catch (error) {
-                console.error("Erro:", error);
-                showToast("Erro ao salvar: " + error.message, "error");
-            }
+            } catch (error) { showToast("Erro: " + error.message, "error"); }
 
-            btn.innerText = id ? "SALVAR ALTERAÇÕES" : "PUBLICAR NOTÍCIA";
-            btn.disabled = false;
+            btn.innerText = id ? "SALVAR ALTERAÇÕES" : "PUBLICAR NOTÍCIA"; btn.disabled = false;
         };
 
-        // 3. Funções Auxiliares
         window.editItem = (item) => {
             document.getElementById('editId').value = item.id;
             document.getElementById('title').value = item.title;
@@ -462,7 +402,7 @@
             document.getElementById('image').value = item.image;
             document.getElementById('content').value = item.content;
             document.getElementById('videoUrl').value = item.videoUrl || '';
-            document.getElementById('externalLink').value = item.externalLink || '';
+            document.getElementById('sourceName').value = item.sourceName || '';
 
             if (item.poll) {
                 document.getElementById('pollQuestion').value = item.poll.question;
@@ -476,13 +416,8 @@
         };
 
         window.delItem = async (id) => {
-            if (confirm("Apagar permanentemente do servidor?")) {
-                try {
-                    await deleteDoc(doc(db, "noticias", id));
-                    showToast("Item deletado.", "error");
-                } catch (e) {
-                    showToast("Erro ao deletar.", "error");
-                }
+            if (confirm("Apagar permanentemente?")) {
+                try { await deleteDoc(doc(db, "noticias", id)); showToast("Item deletado.", "error"); } catch (e) { showToast("Erro ao deletar.", "error"); }
             }
         };
 
