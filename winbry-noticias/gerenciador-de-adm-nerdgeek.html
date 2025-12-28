@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>NerdGeek | Admin Cloud</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=Inter:wght@400;600&display=swap"
+        rel="stylesheet">
+    <style>
+        /* Mantendo o mesmo visual Stark Tech */
+        :root {
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --bg-body: #09090b;
+            --bg-panel: #18181b;
+            --border: #27272a;
+            --text: #e4e4e7;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            outline: none;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            background-image: radial-gradient(#27272a 1px, transparent 1px);
+            background-size: 24px 24px;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+            align-items: start;
+        }
+
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            position: sticky;
+            top: 20px;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        h1 span {
+            color: var(--primary);
+        }
+
+        h3 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #71717a;
+            margin: 20px 0 10px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 5px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #a1a1aa;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            background: #27272a;
+            border: 1px solid transparent;
+            padding: 10px;
+            border-radius: 6px;
+            color: white;
+            font-family: inherit;
+            transition: 0.2s;
+            font-size: 0.9rem;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--primary);
+            background: #09090b;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-cancel {
+            background: #3f3f46;
+            color: #d4d4d8;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .btn-cancel:hover {
+            background: #52525b;
+        }
+
+        .news-item {
+            display: flex;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            align-items: center;
+            gap: 15px;
+            transition: 0.2s;
+        }
+
+        .news-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: #52525b;
+        }
+
+        .thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: #333;
+        }
+
+        .info {
+            flex-grow: 1;
+        }
+
+        .info strong {
+            color: white;
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+        }
+
+        .info span {
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #27272a;
+            color: #a1a1aa;
+            text-transform: uppercase;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+
+        .btn-edit {
+            background: rgba(6, 182, 212, 0.1);
+            color: #06b6d4;
+        }
+
+        .btn-edit:hover {
+            background: #06b6d4;
+            color: black;
+        }
+
+        .btn-del {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        .btn-del:hover {
+            background: #ef4444;
+            color: white;
+        }
+
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: #18181b;
+            border-left: 4px solid var(--primary);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 4px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            font-size: 0.9rem;
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+            }
+
+            to {
+                transform: translateX(0);
+            }
+        }
+
+        @media(max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .panel {
+                position: static;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="toast-container"></div>
+    <div class="layout">
+        <aside class="panel">
+            <h1>Admin <span>NerdGeek</span></h1>
+            <input type="hidden" id="editId">
+
+            <h3>Conteúdo</h3>
+            <div class="form-group"><label>Título</label><input type="text" id="title" placeholder="Manchete..."></div>
+            <div class="form-group">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div><label>Categoria</label>
+                        <select id="category">
+                            <option value="games">Games</option>
+                            <option value="marvel">Marvel</option>
+                            <option value="dc">DC Comics</option>
+                            <option value="filmes">Filmes</option>
+                            <option value="series">Séries</option>
+                        </select>
+                    </div>
+                    <div><label>Capa (URL)</label><input type="text" id="image" placeholder="http://..."></div>
+                </div>
+            </div>
+            <div class="form-group"><label>Texto</label><textarea id="content" rows="6"
+                    placeholder="Escreva aqui..."></textarea></div>
+
+            <h3>Enquete (Opcional)</h3>
+            <div
+                style="background: rgba(139, 92, 246, 0.05); padding: 15px; border-radius: 8px; border: 1px dashed var(--primary);">
+                <div class="form-group"><label>Pergunta</label><input type="text" id="pollQuestion"></div>
+                <div class="form-group"><label>Opções</label>
+                    <input type="text" id="pollOpt1" placeholder="Opção A" style="margin-bottom:5px;">
+                    <input type="text" id="pollOpt2" placeholder="Opção B">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 20px;">
+                <label>Extras</label>
+                <input type="text" id="videoUrl" placeholder="YouTube URL" style="margin-bottom:5px;">
+                <input type="text" id="externalLink" placeholder="Link Externo">
+            </div>
+
+            <button class="btn btn-primary" id="saveBtn">PUBLICAR NOTÍCIA</button>
+            <button class="btn btn-cancel" id="cancelBtn">CANCELAR</button>
+        </aside>
+
+        <main class="main-list">
+            <h2 style="color: white; margin-bottom: 20px;">Publicações Nuvem <span id="count"
+                    style="font-size: 0.8rem; opacity: 0.5;">(...)</span></h2>
+            <div id="list">
+                <div style="text-align:center; padding:20px; color:#666;">Carregando dados da SHIELD...</div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        // Importando Firebase do CDN
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js";
+
+        // --- COLE SUA CONFIGURAÇÃO FIREBASE AQUI (SUBSTITUA AS CHAVES) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCCCKb6EZKESQNIpE_CNKu3G7iaFS2Ini4",
+            authDomain: "nerdgeek-b2bd4.firebaseapp.com",
+            projectId: "nerdgeek-b2bd4",
+            storageBucket: "nerdgeek-b2bd4.firebasestorage.app",
+            messagingSenderId: "826389603208",
+            appId: "1:826389603208:web:5e2e353ad79a54b97a503d",
+            measurementId: "G-NBE1GRGFTT"
+        };
+
+        // Inicializa Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const newsCollection = collection(db, "noticias");
+
+        // --- FUNÇÕES GLOBAIS (Para o HTML acessar) ---
+
+        // 1. Ouvinte em Tempo Real (Atualiza a lista sozinho quando algo muda no banco)
+        onSnapshot(query(newsCollection, orderBy("dateParsed", "desc")), (snapshot) => {
+            const list = document.getElementById('list');
+            document.getElementById('count').innerText = `(${snapshot.size})`;
+            list.innerHTML = '';
+
+            if (snapshot.empty) {
+                list.innerHTML = `<div style="text-align:center; padding:40px; color:#555;">Nenhuma notícia no banco.</div>`;
+                return;
+            }
+
+            snapshot.forEach(docSnap => {
+                const item = { id: docSnap.id, ...docSnap.data() };
+                const hasPoll = item.poll ? '<span style="color:#a78bfa; margin-left:5px;">📊 Enquete</span>' : '';
+
+                // Cria elemento HTML
+                const div = document.createElement('div');
+                div.className = 'news-item';
+                div.innerHTML = `
+                    <img src="${item.image}" class="thumb" onerror="this.src='https://placehold.co/60'">
+                    <div class="info">
+                        <strong>${item.title}</strong>
+                        <span>${item.category}</span>
+                        <span style="color:#666;">• ${item.dateDisplay} ${hasPoll}</span>
+                    </div>
+                    <div class="actions">
+                        <button class="icon-btn btn-edit" data-id="${item.id}">✏️</button>
+                        <button class="icon-btn btn-del" data-id="${item.id}">🗑️</button>
+                    </div>
+                `;
+
+                // Adiciona Listeners nos botões (Jeito seguro do Module)
+                div.querySelector('.btn-edit').onclick = () => editItem(item);
+                div.querySelector('.btn-del').onclick = () => delItem(item.id);
+                list.appendChild(div);
+            });
+        });
+
+        // 2. Salvar / Publicar
+        document.getElementById('saveBtn').onclick = async () => {
+            const btn = document.getElementById('saveBtn');
+            btn.innerText = "Processando...";
+            btn.disabled = true;
+
+            const id = document.getElementById('editId').value;
+            const title = document.getElementById('title').value.trim();
+            const category = document.getElementById('category').value;
+            const image = document.getElementById('image').value.trim() || 'https://placehold.co/800x450/18181b/FFF?text=NerdGeek';
+            const content = document.getElementById('content').value.trim();
+            const videoUrl = document.getElementById('videoUrl').value.trim();
+            const externalLink = document.getElementById('externalLink').value.trim();
+
+            const pollQ = document.getElementById('pollQuestion').value.trim();
+            const pollOpt1 = document.getElementById('pollOpt1').value.trim();
+            const pollOpt2 = document.getElementById('pollOpt2').value.trim();
+
+            if (!title || !content) {
+                showToast("Título e Conteúdo obrigatórios!", "error");
+                btn.innerText = "PUBLICAR NOTÍCIA"; btn.disabled = false;
+                return;
+            }
+
+            let poll = null;
+            if (pollQ && pollOpt1 && pollOpt2) {
+                poll = {
+                    question: pollQ,
+                    options: [{ text: pollOpt1, votes: 0 }, { text: pollOpt2, votes: 0 }]
+                };
+            }
+
+            const now = new Date();
+            const payload = {
+                title, category, image, content, videoUrl, externalLink,
+                dateDisplay: now.toLocaleDateString('pt-BR'),
+                dateParsed: now.getTime() // Útil para ordenar
+            };
+
+            // Se for enquete nova ou editada, adiciona. Se editou texto mas manteve enquete, lógica abaixo trataria (simplificado aqui)
+            if (poll) payload.poll = poll;
+
+            try {
+                if (id) {
+                    // EDITAR
+                    const docRef = doc(db, "noticias", id);
+                    // Nota: Se não enviar 'poll', ele mantém a antiga se usarmos merge? Não, update sobrescreve campos passados.
+                    // Para simplificar: Se usuário não preencheu enquete no form de edição, tentamos não apagar a existente se ela não foi o foco
+                    // Mas para garantir consistência, vamos assumir que o form reflete o estado final.
+                    await updateDoc(docRef, payload);
+                    showToast("Notícia atualizada!");
+                } else {
+                    // CRIAR
+                    if (poll) payload.poll = poll;
+                    await addDoc(newsCollection, payload);
+                    showToast("Notícia enviada para a nuvem!");
+                }
+                resetForm();
+            } catch (error) {
+                console.error("Erro:", error);
+                showToast("Erro ao salvar: " + error.message, "error");
+            }
+
+            btn.innerText = id ? "SALVAR ALTERAÇÕES" : "PUBLICAR NOTÍCIA";
+            btn.disabled = false;
+        };
+
+        // 3. Funções Auxiliares
+        window.editItem = (item) => {
+            document.getElementById('editId').value = item.id;
+            document.getElementById('title').value = item.title;
+            document.getElementById('category').value = item.category;
+            document.getElementById('image').value = item.image;
+            document.getElementById('content').value = item.content;
+            document.getElementById('videoUrl').value = item.videoUrl || '';
+            document.getElementById('externalLink').value = item.externalLink || '';
+
+            if (item.poll) {
+                document.getElementById('pollQuestion').value = item.poll.question;
+                document.getElementById('pollOpt1').value = item.poll.options[0].text;
+                document.getElementById('pollOpt2').value = item.poll.options[1].text;
+            }
+
+            document.getElementById('saveBtn').innerText = "SALVAR ALTERAÇÕES";
+            document.getElementById('cancelBtn').style.display = 'flex';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.delItem = async (id) => {
+            if (confirm("Apagar permanentemente do servidor?")) {
+                try {
+                    await deleteDoc(doc(db, "noticias", id));
+                    showToast("Item deletado.", "error");
+                } catch (e) {
+                    showToast("Erro ao deletar.", "error");
+                }
+            }
+        };
+
+        document.getElementById('cancelBtn').onclick = resetForm;
+
+        function resetForm() {
+            document.querySelectorAll('input, textarea').forEach(el => el.value = '');
+            document.getElementById('category').value = 'games';
+            document.getElementById('editId').value = '';
+            document.getElementById('saveBtn').innerText = "PUBLICAR NOTÍCIA";
+            document.getElementById('cancelBtn').style.display = 'none';
+        }
+
+        function showToast(msg, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.style.borderLeftColor = type === 'error' ? '#ef4444' : '#10b981';
+            toast.innerHTML = `<span style="color:${type === 'error' ? '#ef4444' : '#10b981'}; font-size:1.2rem;">●</span> ${msg}`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+    </script>
+</body>
+
+</html>
