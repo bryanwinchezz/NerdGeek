@@ -667,11 +667,32 @@
 
             const vidArea = document.getElementById('videoArea');
             vidArea.innerHTML = '';
+
             if (news.videoUrl) {
-                let vidId = '';
-                if (news.videoUrl.includes('v=')) vidId = news.videoUrl.split('v=')[1].split('&')[0];
-                else if (news.videoUrl.includes('youtu.be/')) vidId = news.videoUrl.split('youtu.be/')[1];
-                if (vidId) vidArea.innerHTML = `<div class="video-wrapper"><iframe src="https://www.youtube.com/embed/${vidId}" frameborder="0" allowfullscreen></iframe></div>`;
+                // Verifica se é YouTube
+                const isYouTube = news.videoUrl.includes('youtube.com') || news.videoUrl.includes('youtu.be');
+
+                if (isYouTube) {
+                    // Lógica para YouTube (mantida)
+                    let vidId = '';
+                    if (news.videoUrl.includes('v=')) vidId = news.videoUrl.split('v=')[1].split('&')[0];
+                    else if (news.videoUrl.includes('youtu.be/')) vidId = news.videoUrl.split('youtu.be/')[1];
+
+                    if (vidId) {
+                        vidArea.innerHTML = `<div class="video-wrapper"><iframe src="https://www.youtube.com/embed/${vidId}" frameborder="0" allowfullscreen></iframe></div>`;
+                    }
+                } else {
+                    // Lógica para arquivos diretos (.mov, .mp4, etc.)
+                    // Removemos o padding-bottom fixo para o vídeo se ajustar à altura real (bom para vídeos verticais)
+                    vidArea.innerHTML = `
+                        <div class="video-wrapper" style="padding-bottom: 0; height: auto;">
+                            <video controls style="width: 100%; border-radius: 12px; display: block;">
+                                <source src="${news.videoUrl}" type="video/mp4">
+                                <source src="${news.videoUrl}" type="video/quicktime">
+                                Seu navegador não suporta este formato de vídeo.
+                            </video>
+                        </div>`;
+                }
             }
 
             document.getElementById('sourceArea').innerHTML = news.sourceName ? `<strong>Fonte:</strong> ${news.sourceName}` : '';
