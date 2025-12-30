@@ -52,6 +52,8 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
             position: sticky;
             top: 20px;
+            max-height: 95vh;
+            overflow-y: auto;
         }
 
         h1 {
@@ -148,7 +150,19 @@
             margin-bottom: 10px;
             align-items: center;
             gap: 15px;
-            transition: 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: grab;
+            /* Indica que pode arrastar */
+        }
+
+        .news-item:active {
+            cursor: grabbing;
+        }
+
+        .news-item.dragging {
+            opacity: 0.5;
+            border: 1px dashed var(--primary);
+            transform: scale(0.98);
         }
 
         .thumb {
@@ -157,10 +171,13 @@
             border-radius: 6px;
             object-fit: cover;
             background: #333;
+            pointer-events: none;
+            /* Evita arrastar a imagem em vez da div */
         }
 
         .info {
             flex-grow: 1;
+            pointer-events: none;
         }
 
         .info strong {
@@ -206,6 +223,13 @@
             color: #ef4444;
         }
 
+        .drag-handle {
+            color: #555;
+            cursor: grab;
+            margin-right: 5px;
+            font-size: 1.2rem;
+        }
+
         #toast-container {
             position: fixed;
             bottom: 20px;
@@ -240,7 +264,6 @@
             }
         }
 
-        /* Mobile Fixes */
         @media(max-width: 900px) {
             .layout {
                 grid-template-columns: 1fr;
@@ -250,6 +273,11 @@
                 position: relative;
                 top: 0;
                 margin-bottom: 30px;
+            }
+
+            /* Desativa drag em mobile simples para evitar conflito com scroll */
+            .news-item {
+                cursor: default;
             }
         }
     </style>
@@ -293,7 +321,8 @@
 
             <div class="form-group" style="margin-top: 20px;">
                 <label>Extras</label>
-                <input type="text" id="videoUrl" placeholder="Link YouTube ou Arquivo (.mp4, .mov)" style="margin-bottom:5px;">
+                <input type="text" id="videoUrl" placeholder="Link YouTube ou Arquivo (.mp4, .mov)"
+                    style="margin-bottom:5px;">
                 <input type="text" id="sourceName" placeholder="Nome da Fonte (ex: Omelete, IGN)">
             </div>
 
@@ -302,8 +331,11 @@
         </aside>
 
         <main class="main-list">
-            <h2 style="color: white; margin-bottom: 20px;">Publicações Nuvem <span id="count"
-                    style="font-size: 0.8rem; opacity: 0.5;">(...)</span></h2>
+            <h2
+                style="color: white; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+                <span>Publicações <span id="count" style="font-size: 0.8rem; opacity: 0.5;">(...)</span></span>
+                <span style="font-size: 0.7rem; color: #666; font-weight: 400;">Arraste para reordenar</span>
+            </h2>
             <div id="list">
                 <div style="text-align:center; padding:20px; color:#666;">Carregando dados da SHIELD...</div>
             </div>
@@ -312,7 +344,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCCCKb6EZKESQNIpE_CNKu3G7iaFS2Ini4",
@@ -328,26 +360,116 @@
         const db = getFirestore(app);
         const newsCollection = collection(db, "noticias");
 
-        onSnapshot(query(newsCollection, orderBy("dateParsed", "desc")), (snapshot) => {
+        // Alterado para ordenar por 'orderId' (nosso novo campo de controle)
+        // Se não existir orderId (noticias antigas), elas aparecerão por ultimo ate serem salvas
+        onSnapshot(query(newsCollection, orderBy("orderId", "desc")), (snapshot) => {
             const list = document.getElementById('list');
             document.getElementById('count').innerText = `(${snapshot.size})`;
             list.innerHTML = '';
-            if (snapshot.empty) { list.innerHTML = `<div style="text-align:center; padding:40px; color:#555;">Nenhuma notícia no banco.</div>`; return; }
+
+            if (snapshot.empty) {
+                list.innerHTML = `<div style="text-align:center; padding:40px; color:#555;">Nenhuma notícia no banco.</div>`;
+                return;
+            }
+
             snapshot.forEach(docSnap => {
                 const item = { id: docSnap.id, ...docSnap.data() };
+
+                // MIGRACAO AUTOMATICA: Se noticia antiga nao tem orderId, atualiza ela no fundo
+                if (!item.orderId) {
+                    updateDoc(doc(db, "noticias", item.id), { orderId: item.dateParsed || Date.now() });
+                }
+
                 const hasPoll = item.poll ? '<span style="color:#a78bfa; margin-left:5px;">📊 Enquete</span>' : '';
                 const div = document.createElement('div');
                 div.className = 'news-item';
+                div.draggable = true; // Habilita o arrastar
+                div.dataset.id = item.id; // Guarda ID no elemento
+
                 div.innerHTML = `
+                    <div class="drag-handle">⋮⋮</div>
                     <img src="${item.image}" class="thumb" onerror="this.src='https://placehold.co/60'">
-                    <div class="info"><strong>${item.title}</strong><span>${item.category}</span><span style="color:#666;">• ${item.dateDisplay} ${hasPoll}</span></div>
-                    <div class="actions"><button class="icon-btn btn-edit">✏️</button><button class="icon-btn btn-del">🗑️</button></div>
+                    <div class="info">
+                        <strong>${item.title}</strong>
+                        <span>${item.category}</span>
+                        <span style="color:#666;">• ${item.dateDisplay} ${hasPoll}</span>
+                    </div>
+                    <div class="actions">
+                        <button class="icon-btn btn-edit">✏️</button>
+                        <button class="icon-btn btn-del">🗑️</button>
+                    </div>
                 `;
+
                 div.querySelector('.btn-edit').onclick = () => editItem(item);
                 div.querySelector('.btn-del').onclick = () => delItem(item.id);
+
+                // Eventos de Drag and Drop
+                addDragEvents(div);
+
                 list.appendChild(div);
             });
         });
+
+        // --- LÓGICA DE DRAG AND DROP ---
+        function addDragEvents(item) {
+            item.addEventListener('dragstart', () => {
+                item.classList.add('dragging');
+            });
+
+            item.addEventListener('dragend', () => {
+                item.classList.remove('dragging');
+                saveNewOrder(); // Salva a nova ordem no Firebase ao soltar
+            });
+        }
+
+        const listContainer = document.getElementById('list');
+        listContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const afterElement = getDragAfterElement(listContainer, e.clientY);
+            const draggable = document.querySelector('.dragging');
+            if (afterElement == null) {
+                listContainer.appendChild(draggable);
+            } else {
+                listContainer.insertBefore(draggable, afterElement);
+            }
+        });
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.news-item:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        async function saveNewOrder() {
+            // Pega todos os itens na ordem visual atual
+            const items = [...document.querySelectorAll('.news-item')];
+            const batch = writeBatch(db);
+            const now = Date.now();
+
+            // Atribui orderId decrescente (o primeiro da lista ganha o maior número)
+            items.forEach((div, index) => {
+                const id = div.dataset.id;
+                const newOrder = now - (index * 1000); // Garante espaçamento entre os IDs
+                const docRef = doc(db, "noticias", id);
+                batch.update(docRef, { orderId: newOrder });
+            });
+
+            try {
+                await batch.commit();
+                showToast("Ordem atualizada!", "success");
+            } catch (e) {
+                console.error(e);
+                showToast("Erro ao reordenar.", "error");
+            }
+        }
+        // -------------------------------
 
         document.getElementById('saveBtn').onclick = async () => {
             const btn = document.getElementById('saveBtn');
@@ -373,20 +495,28 @@
             }
 
             const now = new Date();
+
+            // Payload básico
             const payload = {
-                title, category, image, content, videoUrl, sourceName,
-                dateDisplay: now.toLocaleDateString('pt-BR'),
-                dateParsed: now.getTime()
+                title, category, image, content, videoUrl, sourceName
             };
 
             if (poll) payload.poll = poll;
 
             try {
                 if (id) {
+                    // MODO EDIÇÃO
+                    payload.lastEdited = now.getTime(); // Marca data da edição
+                    // NÃO enviamos dateParsed nem dateDisplay para manter a data original!
+
                     await updateDoc(doc(db, "noticias", id), payload);
                     showToast("Notícia atualizada!");
                 } else {
-                    if (poll) payload.poll = poll;
+                    // MODO CRIAÇÃO
+                    payload.dateDisplay = now.toLocaleDateString('pt-BR');
+                    payload.dateParsed = now.getTime();
+                    payload.orderId = now.getTime(); // Define ordem inicial como topo
+
                     await addDoc(newsCollection, payload);
                     showToast("Notícia enviada!");
                 }

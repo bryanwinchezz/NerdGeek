@@ -11,12 +11,12 @@
     <meta property="og:title" content="NerdGeek | Seu Portal de Notícias">
     <meta property="og:description"
         content="Notícias diárias sobre Marvel, DC, Games, Filmes e Séries. Acompanhe tudo em um só lugar!">
-    <meta property="og:image" content="https://nerdgeek.netlify.app/nerd-geek-icon.png">
+    <meta property="og:image" content="https://nerdgeek.netlify.app/favicon.png">
 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="NerdGeek | Seu Portal de Notícias">
     <meta name="twitter:description" content="Notícias diárias sobre Marvel, DC, Games, Filmes e Séries.">
-    <meta name="twitter:image" content="https://nerdgeek.netlify.app/nerd-geek-icon.png">
+    <meta name="twitter:image" content="https://nerdgeek.netlify.app/favicon.png">
 
     <meta name="theme-color" content="#8b5cf6">
     <link
@@ -531,7 +531,11 @@
                     <span id="detailCategory" class="tag" style="margin-bottom:15px;">Categoria</span>
                     <h1 id="detailTitle" class="article-title">Titulo</h1>
                     <div style="font-size:0.9rem; color:#ccc; display:flex; flex-direction:column; gap:5px;">
-                        <span>📅 <span id="detailDate">Data</span></span>
+                        <span>
+                            📅 <span id="detailDate">Data</span>
+                            <span id="detailEdited"
+                                style="font-style:italic; color:var(--primary); margin-left:10px; display:none;"></span>
+                        </span>
                         <span class="author-box">✍️ Escrito por <strong style="color:white;">Kauan Bryan</strong></span>
                     </div>
                 </div>
@@ -603,7 +607,9 @@
         let currentSearch = '';
         let currentPage = 1;
 
-        onSnapshot(query(newsCollection, orderBy("dateParsed", "desc")), (snapshot) => {
+        // IMPORTANTE: Agora ordena por 'orderId' para respeitar o Drag & Drop do Admin
+        // Se a ordem parecer errada inicialmente, entre no Admin e arraste um item para "acordar" a nova ordenação
+        onSnapshot(query(newsCollection, orderBy("orderId", "desc")), (snapshot) => {
             allNews = [];
             snapshot.forEach(doc => allNews.push({ id: doc.id, ...doc.data() }));
             renderGrid();
@@ -676,17 +682,25 @@
             document.getElementById('detailCategory').className = `tag ${news.category}`;
             document.getElementById('detailCategory').innerText = news.category;
             document.getElementById('detailDate').innerText = news.dateDisplay;
+
+            // LÓGICA DO SELO DE EDITADO
+            const editSpan = document.getElementById('detailEdited');
+            if (news.lastEdited) {
+                const editDate = new Date(news.lastEdited).toLocaleDateString('pt-BR');
+                editSpan.innerText = `(Editado em ${editDate})`;
+                editSpan.style.display = 'inline';
+            } else {
+                editSpan.style.display = 'none';
+            }
+
             document.getElementById('detailImage').src = news.image;
 
             const vidArea = document.getElementById('videoArea');
             vidArea.innerHTML = '';
 
             if (news.videoUrl) {
-                // Verifica se é YouTube
                 const isYouTube = news.videoUrl.includes('youtube.com') || news.videoUrl.includes('youtu.be');
-
                 if (isYouTube) {
-                    // Lógica para YouTube (mantida)
                     let vidId = '';
                     if (news.videoUrl.includes('v=')) vidId = news.videoUrl.split('v=')[1].split('&')[0];
                     else if (news.videoUrl.includes('youtu.be/')) vidId = news.videoUrl.split('youtu.be/')[1];
@@ -695,8 +709,6 @@
                         vidArea.innerHTML = `<div class="video-wrapper"><iframe src="https://www.youtube.com/embed/${vidId}" frameborder="0" allowfullscreen></iframe></div>`;
                     }
                 } else {
-                    // Lógica para arquivos diretos (.mov, .mp4, etc.)
-                    // Removemos o padding-bottom fixo para o vídeo se ajustar à altura real (bom para vídeos verticais)
                     vidArea.innerHTML = `
                         <div class="video-wrapper" style="padding-bottom: 0; height: auto;">
                             <video controls style="width: 100%; border-radius: 12px; display: block;">
@@ -738,7 +750,6 @@
             return `<div class="embed-poll"><div style="font-size:1.3rem; margin-bottom:20px; color:white;">📊 ${news.poll.question}</div><div>${opts}</div><div style="text-align:right; font-size:0.75rem; color:#666; margin-top:10px;">${total} votos</div></div>`;
         }
 
-        // --- LÓGICA DE VOTO ATUALIZADA (Cancelamento e Troca) ---
         window.submitVote = async (id, newOptIdx) => {
             const news = allNews.find(n => n.id === id);
             if (!news) return;
@@ -747,31 +758,25 @@
             const oldOptIdx = savedVoteStr !== null ? parseInt(savedVoteStr) : null;
 
             try {
-                // Cenário 1: Cancelar (Clicou no mesmo que já votou)
                 if (oldOptIdx === newOptIdx) {
-                    news.poll.options[oldOptIdx].votes--; // Remove o voto
-                    if (news.poll.options[oldOptIdx].votes < 0) news.poll.options[oldOptIdx].votes = 0; // Segurança
+                    news.poll.options[oldOptIdx].votes--;
+                    if (news.poll.options[oldOptIdx].votes < 0) news.poll.options[oldOptIdx].votes = 0;
                     localStorage.removeItem(`vote_${id}`);
                 }
-                // Cenário 2: Trocar de Voto (Tinha um, clicou em outro)
                 else if (oldOptIdx !== null) {
-                    news.poll.options[oldOptIdx].votes--; // Remove o antigo
+                    news.poll.options[oldOptIdx].votes--;
                     if (news.poll.options[oldOptIdx].votes < 0) news.poll.options[oldOptIdx].votes = 0;
-
-                    news.poll.options[newOptIdx].votes++; // Adiciona o novo
+                    news.poll.options[newOptIdx].votes++;
                     localStorage.setItem(`vote_${id}`, newOptIdx);
                 }
-                // Cenário 3: Voto Novo (Primeira vez)
                 else {
                     news.poll.options[newOptIdx].votes++;
                     localStorage.setItem(`vote_${id}`, newOptIdx);
                 }
 
-                // Salvar no Firebase
                 const docRef = doc(db, "noticias", id);
                 await updateDoc(docRef, { poll: news.poll });
 
-                // Atualizar UI
                 const container = document.getElementById('poll-container');
                 if (container) container.innerHTML = generatePollHTML(news);
 
@@ -799,6 +804,5 @@
         });
     </script>
 </body>
-
 
 </html>
