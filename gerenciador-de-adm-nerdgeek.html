@@ -152,7 +152,6 @@
             gap: 15px;
             transition: transform 0.2s, box-shadow 0.2s;
             cursor: grab;
-            /* Indica que pode arrastar */
         }
 
         .news-item:active {
@@ -172,7 +171,6 @@
             object-fit: cover;
             background: #333;
             pointer-events: none;
-            /* Evita arrastar a imagem em vez da div */
         }
 
         .info {
@@ -275,7 +273,6 @@
                 margin-bottom: 30px;
             }
 
-            /* Desativa drag em mobile simples para evitar conflito com scroll */
             .news-item {
                 cursor: default;
             }
@@ -360,31 +357,37 @@
         const db = getFirestore(app);
         const newsCollection = collection(db, "noticias");
 
-        // Alterado para ordenar por 'orderId' (nosso novo campo de controle)
-        // Se não existir orderId (noticias antigas), elas aparecerão por ultimo ate serem salvas
-        onSnapshot(query(newsCollection, orderBy("orderId", "desc")), (snapshot) => {
+        // CORREÇÃO: Voltamos a buscar pela data para garantir que NADA suma
+        onSnapshot(query(newsCollection, orderBy("dateParsed", "desc")), (snapshot) => {
             const list = document.getElementById('list');
             document.getElementById('count').innerText = `(${snapshot.size})`;
             list.innerHTML = '';
 
-            if (snapshot.empty) {
+            let items = [];
+
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                // AUTO-REPARO: Se não tem orderId, cria agora usando a data
+                if (!data.orderId) {
+                    updateDoc(doc(db, "noticias", docSnap.id), { orderId: data.dateParsed || Date.now() });
+                }
+                items.push({ id: docSnap.id, ...data });
+            });
+
+            // Ordena visualmente pelo orderId (se existir) ou pela data
+            items.sort((a, b) => (b.orderId || b.dateParsed) - (a.orderId || a.dateParsed));
+
+            if (items.length === 0) {
                 list.innerHTML = `<div style="text-align:center; padding:40px; color:#555;">Nenhuma notícia no banco.</div>`;
                 return;
             }
 
-            snapshot.forEach(docSnap => {
-                const item = { id: docSnap.id, ...docSnap.data() };
-
-                // MIGRACAO AUTOMATICA: Se noticia antiga nao tem orderId, atualiza ela no fundo
-                if (!item.orderId) {
-                    updateDoc(doc(db, "noticias", item.id), { orderId: item.dateParsed || Date.now() });
-                }
-
+            items.forEach(item => {
                 const hasPoll = item.poll ? '<span style="color:#a78bfa; margin-left:5px;">📊 Enquete</span>' : '';
                 const div = document.createElement('div');
                 div.className = 'news-item';
-                div.draggable = true; // Habilita o arrastar
-                div.dataset.id = item.id; // Guarda ID no elemento
+                div.draggable = true;
+                div.dataset.id = item.id;
 
                 div.innerHTML = `
                     <div class="drag-handle">⋮⋮</div>
@@ -403,9 +406,7 @@
                 div.querySelector('.btn-edit').onclick = () => editItem(item);
                 div.querySelector('.btn-del').onclick = () => delItem(item.id);
 
-                // Eventos de Drag and Drop
                 addDragEvents(div);
-
                 list.appendChild(div);
             });
         });
@@ -448,15 +449,14 @@
         }
 
         async function saveNewOrder() {
-            // Pega todos os itens na ordem visual atual
             const items = [...document.querySelectorAll('.news-item')];
             const batch = writeBatch(db);
             const now = Date.now();
 
-            // Atribui orderId decrescente (o primeiro da lista ganha o maior número)
             items.forEach((div, index) => {
                 const id = div.dataset.id;
-                const newOrder = now - (index * 1000); // Garante espaçamento entre os IDs
+                // Cria ordem decrescente para manter a lógica visual
+                const newOrder = now - (index * 1000);
                 const docRef = doc(db, "noticias", id);
                 batch.update(docRef, { orderId: newOrder });
             });
@@ -496,7 +496,6 @@
 
             const now = new Date();
 
-            // Payload básico
             const payload = {
                 title, category, image, content, videoUrl, sourceName
             };
@@ -506,16 +505,15 @@
             try {
                 if (id) {
                     // MODO EDIÇÃO
-                    payload.lastEdited = now.getTime(); // Marca data da edição
-                    // NÃO enviamos dateParsed nem dateDisplay para manter a data original!
-
+                    payload.lastEdited = now.getTime();
+                    // Não alteramos a data original, apenas a de edição
                     await updateDoc(doc(db, "noticias", id), payload);
                     showToast("Notícia atualizada!");
                 } else {
                     // MODO CRIAÇÃO
                     payload.dateDisplay = now.toLocaleDateString('pt-BR');
                     payload.dateParsed = now.getTime();
-                    payload.orderId = now.getTime(); // Define ordem inicial como topo
+                    payload.orderId = now.getTime(); // Notícias novas vão para o topo
 
                     await addDoc(newsCollection, payload);
                     showToast("Notícia enviada!");
