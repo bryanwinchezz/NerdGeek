@@ -771,6 +771,13 @@
         const db = getFirestore(app);
         const newsCollection = collection(db, "noticias");
 
+        // --- REGISTRAR SERVICE WORKER (FIX PARA ANDROID) ---
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('Service Worker registrado!', reg))
+                .catch(err => console.log('Erro no SW:', err));
+        }
+
         const ITEMS_PER_PAGE = 6;
         let allNews = [];
         let currentFilter = 'all';
@@ -779,45 +786,37 @@
         let isFirstLoad = true;
 
         // --- SISTEMA DE NOTIFICAÇÃO ON/OFF ---
-
-        // Verifica se o usuário silenciou manualmente
         let isMuted = localStorage.getItem('nerdgeek_muted') === 'true';
 
         window.toggleNotifications = () => {
-            const btn = document.getElementById('notifyBtn');
-
-            // 1. Se o navegador não suporta ou negou
             if (!("Notification" in window)) {
                 alert("Navegador sem suporte."); return;
             }
             if (Notification.permission === "denied") {
-                alert("As notificações estão bloqueadas no seu navegador. Você precisa desbloquear nas configurações do site (cadeado na barra de endereço).");
+                alert("As notificações estão bloqueadas no navegador. Clique no cadeado 🔒 na barra de endereço para liberar.");
                 return;
             }
 
-            // 2. Se ainda não pediu permissão, pede agora
             if (Notification.permission === "default") {
                 Notification.requestPermission().then(permission => {
                     if (permission === "granted") {
                         isMuted = false;
                         localStorage.setItem('nerdgeek_muted', 'false');
-                        new Notification("NerdGeek", { body: "Notificações ativadas! 🔔", icon: "favicon.png" });
+                        // Teste de notificação ao ativar
+                        showAndroidNotification({ title: "Notificações Ativadas!", category: "Sistema", id: null });
                         updateBellIcon();
                     }
                 });
                 return;
             }
 
-            // 3. Se já tem permissão: Lógica de Ligar/Desligar (Mute)
             if (Notification.permission === "granted") {
                 if (isMuted) {
-                    // Estava mudo, vamos ligar
                     isMuted = false;
                     localStorage.setItem('nerdgeek_muted', 'false');
-                    // Feedback visual rápido (Toast pequeno)
                     showToastSystem("Notificações Ativadas", "success");
+                    showAndroidNotification({ title: "NerdGeek está ativo!", category: "Sistema", id: null });
                 } else {
-                    // Estava ligado, pergunta se quer desligar
                     if (confirm("Deseja silenciar as notificações de novas notícias?")) {
                         isMuted = true;
                         localStorage.setItem('nerdgeek_muted', 'true');
@@ -830,25 +829,21 @@
 
         function updateBellIcon() {
             const btn = document.getElementById('notifyBtn');
-            btn.className = 'notify-btn'; // Reseta classes
+            btn.className = 'notify-btn';
 
             if (Notification.permission === 'granted') {
                 if (isMuted) {
                     btn.classList.add('muted');
                     btn.innerText = '🔕';
-                    btn.title = "Notificações Silenciadas (Clique para ativar)";
                 } else {
                     btn.classList.add('active');
                     btn.innerText = '🔔';
-                    btn.title = "Notificações Ativas (Clique para silenciar)";
                 }
             } else {
                 btn.innerText = '🔔';
-                btn.title = "Ativar Notificações";
             }
         }
 
-        // Função auxiliar só para feedback da ação do botão
         function showToastSystem(msg, type) {
             const container = document.getElementById('notify-container');
             const toast = document.createElement('div');
@@ -859,7 +854,6 @@
             setTimeout(() => toast.remove(), 2500);
         }
 
-        // Inicializa ícone ao carregar
         updateBellIcon();
 
         // --- LISTENER (RECEBE AS NOTÍCIAS) ---
@@ -867,11 +861,10 @@
             if (!isFirstLoad) {
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === "added") {
-                        // SÓ MOSTRA SE NÃO ESTIVER MUTADO!
                         if (!isMuted) {
-                            showNotification(change.doc.data());
-                        } else {
-                            console.log("Notícia recebida, mas usuário silenciou.");
+                            const newsData = change.doc.data();
+                            newsData.id = change.doc.id; // Garante que o ID vai junto
+                            showNotification(newsData);
                         }
                     }
                 });
@@ -882,9 +875,9 @@
             isFirstLoad = false;
         });
 
-        // --- DISPARO DE NOTIFICAÇÃO ---
+        // --- DISPARO DE NOTIFICAÇÃO (HÍBRIDO: VISUAL + NATIVA) ---
         function showNotification(news) {
-            // Toast Visual
+            // 1. Toast Visual (Dentro do Site)
             const container = document.getElementById('notify-container');
             const toast = document.createElement('div');
             toast.className = 'news-toast';
@@ -898,26 +891,44 @@
 
             const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3');
             audio.volume = 0.4;
-            audio.play().catch(e => { }); // Ignora erro de autoplay
+            audio.play().catch(e => { });
 
             toast.onclick = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); toast.remove(); };
             container.appendChild(toast);
             setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 6000);
 
-            // Notificação Nativa (Windows/Android)
+            // 2. Notificação Nativa (ANDROID/PC) via Service Worker
             if (Notification.permission === "granted") {
-                const notif = new Notification(`NerdGeek: ${news.category.toUpperCase()}`, {
-                    body: news.title,
-                    icon: news.image || 'favicon.png',
-                    tag: news.id
-                });
-                notif.onclick = function () {
-                    window.focus();
-                    window.openDetails(news.id);
-                    this.close();
-                };
+                showAndroidNotification(news);
             }
         }
+
+        // Nova função específica para lidar com o Android
+        async function showAndroidNotification(news) {
+            try {
+                const reg = await navigator.serviceWorker.ready;
+
+                // Configuração avançada para Android
+                const options = {
+                    body: news.title,
+                    icon: news.image || 'favicon.png', // Android usa isso na barra lateral
+                    badge: 'favicon.png', // Ícone pequeno da barra de status (deve ser png transparente)
+                    vibrate: [200, 100, 200], // Vibração: vibra, pausa, vibra
+                    tag: news.id || 'system', // Evita spam duplicado
+                    data: { url: window.location.href } // Dados para abrir ao clicar
+                };
+
+                // Usa o Service Worker para mostrar (Método confiável no Mobile)
+                reg.showNotification(`NerdGeek: ${news.category ? news.category.toUpperCase() : 'Notícia'}`, options);
+
+            } catch (e) {
+                // Fallback para PC caso SW falhe
+                console.log("Fallback notificação PC");
+                new Notification(`NerdGeek: ${news.category}`, { body: news.title, icon: 'favicon.png' });
+            }
+        }
+
+        // ... [RESTANTE DO CÓDIGO DO GRID, RENDERGRID, ETC. PERMANECE IGUAL] ...
 
         function renderGrid() {
             const grid = document.getElementById('newsGrid');
@@ -1108,3 +1119,6 @@
             renderGrid();
         });
     </script>
+</body>
+
+</html>
