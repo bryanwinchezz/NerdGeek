@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>NerdGeek | Seu Portal de Notícias</title>
+    <link rel="manifest" href="manifest.json">
     <link rel="shortcut icon" href="favicon.png" type="image/x-icon">
 
     <meta property="og:type" content="website">
@@ -122,6 +123,39 @@
             transform: translateY(-50%);
             color: #71717a;
             font-size: 0.9rem;
+        }
+
+        /* ÍCONE DE NOTIFICAÇÃO (SINO) */
+        .notify-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.3s;
+            position: relative;
+        }
+
+        .notify-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .notify-btn.active::after {
+            content: '';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 8px;
+            height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            border: 2px solid var(--bg-body);
         }
 
         .nav-scroll {
@@ -410,7 +444,7 @@
             font-weight: 600;
         }
 
-        /* --- NOTIFICATION TOAST (NOVO) --- */
+        /* --- TOAST (MANTIDO COMO BACKUP VISUAL) --- */
         #notify-container {
             position: fixed;
             bottom: 30px;
@@ -419,6 +453,7 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
+            pointer-events: none;
         }
 
         .news-toast {
@@ -438,7 +473,7 @@
             animation: slideInToast 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
             max-width: 350px;
             cursor: pointer;
-            transition: 0.3s;
+            pointer-events: auto;
         }
 
         .news-toast:hover {
@@ -524,7 +559,6 @@
             margin-top: 5px;
         }
 
-        /* --- SCROLLBAR --- */
         ::-webkit-scrollbar {
             width: 10px;
             height: 10px;
@@ -603,10 +637,18 @@
     <header class="header">
         <div class="container header-content">
             <div class="logo" onclick="window.showHome()">NERD<span>GEEK</span></div>
-            <div class="search-box">
-                <span class="search-icon">🔍</span>
-                <input type="text" class="search-input" id="searchInput" placeholder="Pesquisar notícias...">
+            <div style="display: flex; align-items: center; gap: 10px; width: 100%; justify-content: flex-end;">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" class="search-input" id="searchInput" placeholder="Pesquisar notícias...">
+                </div>
+                <button class="notify-btn" id="notifyBtn" onclick="requestPermission()" title="Ativar Notificações">
+                    🔔
+                </button>
             </div>
+
+        </div>
+        <div class="container">
             <div class="nav-scroll">
                 <div class="nav-item active" onclick="window.filterNews('all', this)">Recentes</div>
                 <div class="nav-item" onclick="window.filterNews('games', this)">Games</div>
@@ -706,15 +748,44 @@
         let currentFilter = 'all';
         let currentSearch = '';
         let currentPage = 1;
-        let isFirstLoad = true; // Controla se é a primeira carga para não notificar tudo de uma vez
+        let isFirstLoad = true;
 
-        // --- LISTENER EM TEMPO REAL COM NOTIFICAÇÃO ---
+        // --- SOLICITAR PERMISSÃO DO NAVEGADOR ---
+        window.requestPermission = () => {
+            if (!("Notification" in window)) {
+                alert("Este navegador não suporta notificações de sistema.");
+                return;
+            }
+
+            if (Notification.permission === "granted") {
+                // Já tem permissão
+                new Notification("NerdGeek", { body: "As notificações já estão ativas! 🚀", icon: "favicon.png" });
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        new Notification("NerdGeek", { body: "Notificações ativadas com sucesso!", icon: "favicon.png" });
+                        updateBellIcon();
+                    }
+                });
+            }
+        }
+
+        function updateBellIcon() {
+            const btn = document.getElementById('notifyBtn');
+            if (Notification.permission === 'granted') {
+                btn.classList.add('active');
+                btn.title = "Notificações Ativas";
+            }
+        }
+        updateBellIcon(); // Checa ao carregar
+
+        // --- LISTENER COM NOTIFICAÇÃO NATIVA E TOAST ---
         onSnapshot(query(newsCollection, orderBy("orderId", "desc")), (snapshot) => {
-            // Verifica mudanças para disparar notificação
             if (!isFirstLoad) {
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === "added") {
-                        showNotification(change.doc.data());
+                        const newsData = change.doc.data();
+                        showNotification(newsData);
                     }
                 });
             }
@@ -723,11 +794,12 @@
             snapshot.forEach(doc => allNews.push({ id: doc.id, ...doc.data() }));
             renderGrid();
 
-            isFirstLoad = false; // Após a primeira renderização, habilita as notificações
+            isFirstLoad = false;
         });
 
-        // --- FUNÇÃO DE NOTIFICAÇÃO ESTILIZADA ---
+        // --- FUNÇÃO DE NOTIFICAÇÃO NATIVA DO SISTEMA ---
         function showNotification(news) {
+            // 1. Toca o alerta visual no site (Toast)
             const container = document.getElementById('notify-container');
             const toast = document.createElement('div');
             toast.className = 'news-toast';
@@ -735,35 +807,37 @@
                 <div class="toast-icon">🚀</div>
                 <div class="toast-content">
                     <h4>Nova publicação!</h4>
-                    <p>${news.title.substring(0, 45)}${news.title.length > 45 ? '...' : ''}</p>
+                    <p>${news.title.substring(0, 45)}...</p>
                 </div>
             `;
-
-            // Som suave de notificação (opcional)
             const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3');
             audio.volume = 0.4;
-            audio.play().catch(e => console.log('Autoplay bloqueado pelo navegador'));
+            audio.play().catch(e => console.log('Autoplay audio block'));
 
-            toast.onclick = () => {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-                toast.remove();
-            };
-
+            toast.onclick = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); toast.remove(); };
             container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(100px)'; setTimeout(() => toast.remove(), 500); }, 6000);
 
-            // Remove automaticamente após 6 segundos
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateX(100px)';
-                setTimeout(() => toast.remove(), 500);
-            }, 6000);
+            // 2. DISPARA NOTIFICAÇÃO DO SISTEMA (WINDOWS/ANDROID)
+            if (Notification.permission === "granted") {
+                const notif = new Notification(`NerdGeek: ${news.category.toUpperCase()}`, {
+                    body: news.title,
+                    icon: news.image || 'favicon.png', // Tenta usar a imagem da notícia ou o ícone
+                    tag: news.id // Evita duplicação
+                });
+
+                notif.onclick = function () {
+                    window.focus();
+                    window.openDetails(news.id); // Abre a notícia direto se clicar na notificação
+                    this.close();
+                };
+            }
         }
 
         function renderGrid() {
             const grid = document.getElementById('newsGrid');
             const paginationDiv = document.getElementById('pagination');
 
-            // Se o usuário estiver pesquisando ou filtrando, filtramos a lista
             const filtered = allNews.filter(item => {
                 const matchCat = currentFilter === 'all' || item.category === currentFilter;
                 const matchSearch = item.title.toLowerCase().includes(currentSearch.toLowerCase());
