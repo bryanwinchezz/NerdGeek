@@ -6,18 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>NerdGeek | Admin</title>
     <link rel="shortcut icon" href="favicon.png" type="image/x-icon">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://nerdgeek.netlify.app/gerenciador-de-adm-nerdgeek.html">
-    <meta property="og:title" content="NerdGeek | Admin">
-    <meta property="og:description" content="Seu lugar privado para gerenciar notícias e conteúdo do portal NerdGeek!">
-    <meta property="og:image" content="https://nerdgeek.netlify.app/nerd-geek-icon-adm.png">
 
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="NerdGeek | Admin">
-    <meta name="twitter:description" content="Seu lugar privado para gerenciar notícias e conteúdo do portal NerdGeek!">
-    <meta name="twitter:image" content="https://nerdgeek.netlify.app/nerd-geek-icon-adm.png">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=Inter:wght@400;600&display=swap"
         rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
     <style>
         :root {
             --primary: #8b5cf6;
@@ -26,6 +20,7 @@
             --bg-panel: #18181b;
             --border: #27272a;
             --text: #e4e4e7;
+            --danger: #ef4444;
         }
 
         * {
@@ -151,57 +146,142 @@
             display: none;
         }
 
+        /* --- ESTILOS NOVOS PARA ENQUETE DINÂMICA --- */
+        .poll-row {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 8px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .poll-row input {
+            flex-grow: 1;
+        }
+
+        .btn-remove-opt {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            width: 40px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: 0.2s;
+        }
+
+        .btn-remove-opt:hover {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-add-opt {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--primary);
+            border: 1px dashed var(--primary);
+            font-size: 0.8rem;
+            padding: 8px;
+            margin-top: 5px;
+        }
+
+        .btn-add-opt:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* --- ESTILO DA LISTA DE NOTÍCIAS --- */
         .news-item {
             display: flex;
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--border);
             padding: 15px;
-            border-radius: 8px;
+            border-radius: 10px;
             margin-bottom: 10px;
             align-items: center;
             gap: 15px;
-            transition: transform 0.2s, box-shadow 0.2s;
-            cursor: grab;
+            transition: background 0.2s, transform 0.2s;
+            position: relative;
         }
 
-        .news-item:active {
+        .sortable-ghost {
+            opacity: 0.4;
+            background: var(--primary);
+        }
+
+        .sortable-drag {
             cursor: grabbing;
+            opacity: 1;
+            background: #27272a;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
         }
 
-        .news-item.dragging {
-            opacity: 0.5;
-            border: 1px dashed var(--primary);
-            transform: scale(0.98);
+        .drag-handle {
+            color: #555;
+            cursor: grab;
+            font-size: 1.5rem;
+            padding: 0 5px;
+            touch-action: none;
         }
 
         .thumb {
-            width: 60px;
-            height: 60px;
-            border-radius: 6px;
+            width: 70px;
+            height: 70px;
+            border-radius: 8px;
             object-fit: cover;
             background: #333;
             pointer-events: none;
+            flex-shrink: 0;
         }
 
         .info {
             flex-grow: 1;
-            pointer-events: none;
+            min-width: 0;
         }
 
         .info strong {
             color: white;
             display: block;
-            margin-bottom: 4px;
-            font-size: 0.95rem;
+            margin-bottom: 8px;
+            font-size: 1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .info span {
-            font-size: 0.75rem;
-            padding: 2px 6px;
-            border-radius: 4px;
+        .meta-badges {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            border-radius: 6px;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .badge-cat {
             background: #27272a;
             color: #a1a1aa;
-            text-transform: uppercase;
+            border: 1px solid #3f3f46;
+        }
+
+        .badge-date {
+            background: rgba(139, 92, 246, 0.1);
+            color: #c4b5fd;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .badge-poll {
+            background: rgba(6, 182, 212, 0.15);
+            color: #67e8f9;
+            border: 1px solid rgba(6, 182, 212, 0.3);
         }
 
         .actions {
@@ -210,9 +290,9 @@
         }
 
         .icon-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 4px;
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
             border: none;
             cursor: pointer;
             display: flex;
@@ -231,11 +311,51 @@
             color: #ef4444;
         }
 
-        .drag-handle {
-            color: #555;
-            cursor: grab;
-            margin-right: 5px;
-            font-size: 1.2rem;
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* --- SCROLLBAR --- */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-body);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #3f3f46;
+            border-radius: 5px;
+            border: 2px solid var(--bg-body);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: var(--primary);
+        }
+
+        .panel::-webkit-scrollbar-track {
+            background: var(--bg-panel);
+            margin: 10px;
+            border-radius: 0 12px 12px 0;
+        }
+
+        .panel::-webkit-scrollbar-thumb {
+            border-color: var(--bg-panel);
+        }
+
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary) var(--bg-body);
         }
 
         #toast-container {
@@ -272,19 +392,88 @@
             }
         }
 
+        /* --- RESPONSIVIDADE --- */
         @media(max-width: 900px) {
             .layout {
                 grid-template-columns: 1fr;
             }
 
             .panel {
-                position: relative;
-                top: 0;
                 margin-bottom: 30px;
+                position: static;
             }
 
             .news-item {
-                cursor: default;
+                display: grid;
+                grid-template-columns: auto auto 1fr auto;
+                gap: 12px;
+                padding: 12px;
+            }
+
+            .drag-handle {
+                font-size: 1.8rem;
+                padding: 10px 5px;
+            }
+
+            .thumb {
+                width: 60px;
+                height: 60px;
+            }
+
+            .info strong {
+                white-space: normal;
+                font-size: 0.95rem;
+                line-height: 1.3;
+            }
+
+            .actions {
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .icon-btn {
+                width: 32px;
+                height: 32px;
+            }
+        }
+
+        @media(max-width: 450px) {
+            .news-item {
+                grid-template-columns: auto auto 1fr auto;
+                gap: 10px;
+                align-items: center;
+            }
+
+            .thumb {
+                display: block !important;
+                width: 45px;
+                height: 45px;
+                border-radius: 6px;
+            }
+
+            .drag-handle {
+                font-size: 1.4rem;
+                padding: 0;
+            }
+
+            .info strong {
+                font-size: 0.85rem;
+                margin-bottom: 4px;
+            }
+
+            .badge {
+                padding: 2px 6px;
+                font-size: 0.65rem;
+            }
+
+            .actions {
+                gap: 4px;
+            }
+
+            .icon-btn {
+                width: 30px;
+                height: 30px;
+                font-size: 0.8rem;
             }
         }
     </style>
@@ -320,9 +509,12 @@
             <div
                 style="background: rgba(139, 92, 246, 0.05); padding: 15px; border-radius: 8px; border: 1px dashed var(--primary);">
                 <div class="form-group"><label>Pergunta</label><input type="text" id="pollQuestion"></div>
-                <div class="form-group"><label>Opções</label>
-                    <input type="text" id="pollOpt1" placeholder="Opção A" style="margin-bottom:5px;">
-                    <input type="text" id="pollOpt2" placeholder="Opção B">
+                <div class="form-group">
+                    <label>Opções</label>
+                    <div id="pollOptionsContainer">
+                    </div>
+                    <button class="btn btn-add-opt" id="btnAddOption" onclick="addPollOption()">+ Adicionar
+                        Opção</button>
                 </div>
             </div>
 
@@ -330,10 +522,9 @@
                 <label>Extras</label>
                 <input type="text" id="authorName" placeholder="Nome do Autor (ex: Kauan Bryan)"
                     style="margin-bottom:5px;">
-
-                <input type="text" id="videoUrl" placeholder="Link YouTube ou Arquivo (.mp4, .mov)"
+                <input type="text" id="videoUrl" placeholder="Link YouTube ou Arquivo (.mp4)"
                     style="margin-bottom:5px;">
-                <input type="text" id="sourceName" placeholder="Nome da Fonte (ex: Omelete, IGN)">
+                <input type="text" id="sourceName" placeholder="Nome da Fonte">
             </div>
 
             <button class="btn btn-primary" id="saveBtn">PUBLICAR NOTÍCIA</button>
@@ -344,10 +535,10 @@
             <h2
                 style="color: white; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
                 <span>Publicações <span id="count" style="font-size: 0.8rem; opacity: 0.5;">(...)</span></span>
-                <span style="font-size: 0.7rem; color: #666; font-weight: 400;">Arraste para reordenar</span>
+                <span style="font-size: 0.7rem; color: #666; font-weight: 400;">Segure e arraste p/ reordenar</span>
             </h2>
             <div id="list">
-                <div style="text-align:center; padding:20px; color:#666;">Carregando dados da SHIELD...</div>
+                <div style="text-align:center; padding:20px; color:#666;">Acessando banco de dados...</div>
             </div>
         </main>
     </div>
@@ -369,121 +560,96 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const newsCollection = collection(db, "noticias");
+        let sortableInstance = null;
+        let currentEditingPoll = null; // Armazena estado da enquete ao editar para não perder votos
 
-        // CORREÇÃO: Voltamos a buscar pela data para garantir que NADA suma
-        onSnapshot(query(newsCollection, orderBy("dateParsed", "desc")), (snapshot) => {
+        // --- SISTEMA DE LISTAGEM ---
+        onSnapshot(query(newsCollection, orderBy("orderId", "desc")), (snapshot) => {
             const list = document.getElementById('list');
             document.getElementById('count').innerText = `(${snapshot.size})`;
             list.innerHTML = '';
 
             let items = [];
-
             snapshot.forEach(docSnap => {
                 const data = docSnap.data();
-                // AUTO-REPARO: Se não tem orderId, cria agora usando a data
-                if (!data.orderId) {
-                    updateDoc(doc(db, "noticias", docSnap.id), { orderId: data.dateParsed || Date.now() });
-                }
+                if (!data.orderId) { updateDoc(doc(db, "noticias", docSnap.id), { orderId: data.dateParsed || Date.now() }); }
                 items.push({ id: docSnap.id, ...data });
             });
 
-            // Ordena visualmente pelo orderId (se existir) ou pela data
-            items.sort((a, b) => (b.orderId || b.dateParsed) - (a.orderId || a.dateParsed));
+            items.sort((a, b) => (b.orderId || 0) - (a.orderId || 0));
 
             if (items.length === 0) {
-                list.innerHTML = `<div style="text-align:center; padding:40px; color:#555;">Nenhuma notícia no banco.</div>`;
+                list.innerHTML = `<div style="text-align:center; padding:40px; color:#555;">Nenhuma notícia encontrada.</div>`;
                 return;
             }
 
             items.forEach(item => {
-                const hasPoll = item.poll ? '<span style="color:#a78bfa; margin-left:5px;">📊 Enquete</span>' : '';
                 const div = document.createElement('div');
                 div.className = 'news-item';
-                div.draggable = true;
                 div.dataset.id = item.id;
+
+                const hasPoll = item.poll ? `<span class="badge badge-poll">📊 Enquete</span>` : '';
 
                 div.innerHTML = `
                     <div class="drag-handle">⋮⋮</div>
-                    <img src="${item.image}" class="thumb" onerror="this.src='https://placehold.co/60'">
+                    <img src="${item.image}" class="thumb" onerror="this.src='https://placehold.co/70'">
                     <div class="info">
                         <strong>${item.title}</strong>
-                        <span>${item.category}</span>
-                        <span style="color:#666;">• ${item.dateDisplay} ${hasPoll}</span>
+                        <div class="meta-badges">
+                            <span class="badge badge-cat">${item.category}</span>
+                            <span class="badge badge-date">📅 ${item.dateDisplay}</span>
+                            ${hasPoll}
+                        </div>
                     </div>
                     <div class="actions">
-                        <button class="icon-btn btn-edit">✏️</button>
-                        <button class="icon-btn btn-del">🗑️</button>
+                        <button class="icon-btn btn-edit" title="Editar">✏️</button>
+                        <button class="icon-btn btn-del" title="Excluir">🗑️</button>
                     </div>
                 `;
 
                 div.querySelector('.btn-edit').onclick = () => editItem(item);
                 div.querySelector('.btn-del').onclick = () => delItem(item.id);
-
-                addDragEvents(div);
                 list.appendChild(div);
             });
+
+            if (sortableInstance) sortableInstance.destroy();
+            const listContainer = document.getElementById('list');
+            sortableInstance = new Sortable(listContainer, {
+                animation: 150,
+                handle: '.drag-handle',
+                ghostClass: 'sortable-ghost',
+                dragClass: 'sortable-drag',
+                onEnd: function (evt) { saveNewOrder(); }
+            });
         });
 
-        // --- LÓGICA DE DRAG AND DROP ---
-        function addDragEvents(item) {
-            item.addEventListener('dragstart', () => {
-                item.classList.add('dragging');
-            });
-
-            item.addEventListener('dragend', () => {
-                item.classList.remove('dragging');
-                saveNewOrder(); // Salva a nova ordem no Firebase ao soltar
-            });
-        }
-
-        const listContainer = document.getElementById('list');
-        listContainer.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            const afterElement = getDragAfterElement(listContainer, e.clientY);
-            const draggable = document.querySelector('.dragging');
-            if (afterElement == null) {
-                listContainer.appendChild(draggable);
-            } else {
-                listContainer.insertBefore(draggable, afterElement);
-            }
-        });
-
-        function getDragAfterElement(container, y) {
-            const draggableElements = [...container.querySelectorAll('.news-item:not(.dragging)')];
-            return draggableElements.reduce((closest, child) => {
-                const box = child.getBoundingClientRect();
-                const offset = y - box.top - box.height / 2;
-                if (offset < 0 && offset > closest.offset) {
-                    return { offset: offset, element: child };
-                } else {
-                    return closest;
-                }
-            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        // --- MANIPULAÇÃO DINÂMICA DE OPÇÕES DA ENQUETE ---
+        window.addPollOption = (value = '') => {
+            const container = document.getElementById('pollOptionsContainer');
+            const div = document.createElement('div');
+            div.className = 'poll-row';
+            div.innerHTML = `
+                <input type="text" class="poll-input" placeholder="Nova opção..." value="${value}">
+                <button class="btn-remove-opt" onclick="this.parentElement.remove()" title="Remover">×</button>
+            `;
+            container.appendChild(div);
         }
 
         async function saveNewOrder() {
             const items = [...document.querySelectorAll('.news-item')];
             const batch = writeBatch(db);
             const now = Date.now();
-
             items.forEach((div, index) => {
                 const id = div.dataset.id;
-                // Cria ordem decrescente para manter a lógica visual
                 const newOrder = now - (index * 1000);
                 const docRef = doc(db, "noticias", id);
                 batch.update(docRef, { orderId: newOrder });
             });
-
-            try {
-                await batch.commit();
-                showToast("Ordem atualizada!", "success");
-            } catch (e) {
-                console.error(e);
-                showToast("Erro ao reordenar.", "error");
-            }
+            try { await batch.commit(); showToast("Ordem atualizada!", "success"); }
+            catch (e) { console.error(e); showToast("Erro ao reordenar.", "error"); }
         }
-        // -------------------------------
 
+        // --- SALVAR / EDITAR ---
         document.getElementById('saveBtn').onclick = async () => {
             const btn = document.getElementById('saveBtn');
             btn.innerText = "Processando..."; btn.disabled = true;
@@ -498,37 +664,54 @@
             const author = document.getElementById('authorName').value.trim() || 'Kauan Bryan';
 
             const pollQ = document.getElementById('pollQuestion').value.trim();
-            const pollOpt1 = document.getElementById('pollOpt1').value.trim();
-            const pollOpt2 = document.getElementById('pollOpt2').value.trim();
 
-            if (!title || !content) { showToast("Título e Conteúdo obrigatórios!", "error"); btn.innerText = "PUBLICAR NOTÍCIA"; btn.disabled = false; return; }
-
+            // Coletar opções dinâmicas
+            const optionInputs = document.querySelectorAll('.poll-input');
             let poll = null;
-            if (pollQ && pollOpt1 && pollOpt2) {
-                poll = { question: pollQ, options: [{ text: pollOpt1, votes: 0 }, { text: pollOpt2, votes: 0 }] };
+
+            if (pollQ && optionInputs.length > 0) {
+                const options = [];
+                let hasValidOption = false;
+
+                optionInputs.forEach(input => {
+                    if (input.value.trim() !== "") {
+                        hasValidOption = true;
+                        // Tenta preservar votos se estiver editando e o texto for igual
+                        let existingVotes = 0;
+                        if (currentEditingPoll && currentEditingPoll.options) {
+                            const match = currentEditingPoll.options.find(o => o.text === input.value.trim());
+                            if (match) existingVotes = match.votes;
+                        }
+                        options.push({ text: input.value.trim(), votes: existingVotes });
+                    }
+                });
+
+                if (hasValidOption) {
+                    poll = { question: pollQ, options: options };
+                }
+            }
+
+            if (!title || !content) {
+                showToast("Título e Conteúdo obrigatórios!", "error");
+                btn.innerText = id ? "SALVAR ALTERAÇÕES" : "PUBLICAR NOTÍCIA";
+                btn.disabled = false;
+                return;
             }
 
             const now = new Date();
-
-            const payload = {
-                title, category, image, content, videoUrl, sourceName, author
-            };
-
+            const payload = { title, category, image, content, videoUrl, sourceName, author };
             if (poll) payload.poll = poll;
+            else if (id) payload.poll = null; // Remove enquete se limpar os campos na edição
 
             try {
                 if (id) {
-                    // MODO EDIÇÃO
                     payload.lastEdited = now.getTime();
-                    // Não alteramos a data original, apenas a de edição
                     await updateDoc(doc(db, "noticias", id), payload);
                     showToast("Notícia atualizada!");
                 } else {
-                    // MODO CRIAÇÃO
                     payload.dateDisplay = now.toLocaleDateString('pt-BR');
                     payload.dateParsed = now.getTime();
-                    payload.orderId = now.getTime(); // Notícias novas vão para o topo
-
+                    payload.orderId = now.getTime();
                     await addDoc(newsCollection, payload);
                     showToast("Notícia enviada!");
                 }
@@ -548,10 +731,21 @@
             document.getElementById('sourceName').value = item.sourceName || '';
             document.getElementById('authorName').value = item.author || 'Kauan Bryan';
 
+            // Limpa container de opções
+            const container = document.getElementById('pollOptionsContainer');
+            container.innerHTML = '';
+
             if (item.poll) {
+                currentEditingPoll = item.poll; // Salva para tentar manter os votos
                 document.getElementById('pollQuestion').value = item.poll.question;
-                document.getElementById('pollOpt1').value = item.poll.options[0].text;
-                document.getElementById('pollOpt2').value = item.poll.options[1].text;
+                item.poll.options.forEach(opt => {
+                    addPollOption(opt.text);
+                });
+            } else {
+                currentEditingPoll = null;
+                document.getElementById('pollQuestion').value = '';
+                addPollOption(); // Adiciona 2 vazias por padrão
+                addPollOption();
             }
 
             document.getElementById('saveBtn').innerText = "SALVAR ALTERAÇÕES";
@@ -561,7 +755,8 @@
 
         window.delItem = async (id) => {
             if (confirm("Apagar permanentemente?")) {
-                try { await deleteDoc(doc(db, "noticias", id)); showToast("Item deletado.", "error"); } catch (e) { showToast("Erro ao deletar.", "error"); }
+                try { await deleteDoc(doc(db, "noticias", id)); showToast("Item deletado.", "error"); }
+                catch (e) { showToast("Erro ao deletar.", "error"); }
             }
         };
 
@@ -571,6 +766,14 @@
             document.querySelectorAll('input, textarea').forEach(el => el.value = '');
             document.getElementById('category').value = 'games';
             document.getElementById('editId').value = '';
+
+            // Reseta opções da enquete para 2 campos vazios
+            const container = document.getElementById('pollOptionsContainer');
+            container.innerHTML = '';
+            addPollOption();
+            addPollOption();
+            currentEditingPoll = null;
+
             document.getElementById('saveBtn').innerText = "PUBLICAR NOTÍCIA";
             document.getElementById('cancelBtn').style.display = 'none';
         }
@@ -584,6 +787,9 @@
             container.appendChild(toast);
             setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
         }
+
+        // Inicializa com 2 opções vazias
+        resetForm();
     </script>
 </body>
 

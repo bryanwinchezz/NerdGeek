@@ -6,22 +6,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>NerdGeek | Seu Portal de Notícias</title>
     <link rel="shortcut icon" href="favicon.png" type="image/x-icon">
+
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://nerdgeek.netlify.app/">
     <meta property="og:title" content="NerdGeek | Seu Portal de Notícias">
     <meta property="og:description"
         content="Notícias diárias sobre Marvel, DC, Games, Filmes e Séries. Acompanhe tudo em um só lugar!">
     <meta property="og:image" content="https://nerdgeek.netlify.app/nerd-geek-icon.png">
-
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="NerdGeek | Seu Portal de Notícias">
-    <meta name="twitter:description" content="Notícias diárias sobre Marvel, DC, Games, Filmes e Séries.">
-    <meta name="twitter:image" content="https://nerdgeek.netlify.app/nerd-geek-icon.png">
-
     <meta name="theme-color" content="#8b5cf6">
+
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&family=Inter:wght@400;600&display=swap"
         rel="stylesheet">
+
     <style>
         :root {
             --primary: #8b5cf6;
@@ -57,6 +54,7 @@
             flex-grow: 1;
         }
 
+        /* --- HEADER & NAV --- */
         .header {
             background: rgba(9, 9, 11, 0.85);
             backdrop-filter: blur(12px);
@@ -114,6 +112,7 @@
         .search-input:focus {
             border-color: var(--primary);
             outline: none;
+            box-shadow: 0 0 10px var(--primary-glow);
         }
 
         .search-icon {
@@ -153,6 +152,7 @@
             border-color: var(--primary);
         }
 
+        /* --- CARDS & GRID --- */
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -175,6 +175,7 @@
         .card:hover {
             transform: translateY(-6px);
             border-color: rgba(139, 92, 246, 0.4);
+            box-shadow: 0 10px 30px -10px rgba(139, 92, 246, 0.2);
         }
 
         .img-container {
@@ -241,6 +242,7 @@
             font-size: 1.25rem;
             margin-bottom: 10px;
             color: white;
+            line-height: 1.3;
         }
 
         .meta {
@@ -253,6 +255,7 @@
             border-top: 1px solid rgba(255, 255, 255, 0.05);
         }
 
+        /* --- PAGINATION --- */
         .pagination-container {
             display: flex;
             justify-content: center;
@@ -276,11 +279,7 @@
             justify-content: center;
         }
 
-        .page-btn:hover {
-            border-color: var(--primary);
-            color: white;
-        }
-
+        .page-btn:hover,
         .page-btn.active {
             background: var(--primary);
             color: white;
@@ -288,6 +287,7 @@
             box-shadow: 0 0 15px var(--primary-glow);
         }
 
+        /* --- DETAILS VIEW --- */
         #detailsView {
             display: none;
             padding-bottom: 80px;
@@ -363,6 +363,7 @@
             height: 100%;
         }
 
+        /* --- POLLS --- */
         .embed-poll {
             background: #131315;
             border: 1px solid var(--border);
@@ -409,6 +410,74 @@
             font-weight: 600;
         }
 
+        /* --- NOTIFICATION TOAST (NOVO) --- */
+        #notify-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .news-toast {
+            background: rgba(24, 24, 27, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--primary);
+            padding: 16px 20px;
+            border-radius: 12px;
+            color: white;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transform: translateX(100px);
+            opacity: 0;
+            animation: slideInToast 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            max-width: 350px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .news-toast:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 50px rgba(139, 92, 246, 0.2);
+        }
+
+        .toast-icon {
+            font-size: 1.5rem;
+            background: rgba(139, 92, 246, 0.2);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toast-content h4 {
+            font-size: 0.9rem;
+            color: var(--primary);
+            margin-bottom: 2px;
+        }
+
+        .toast-content p {
+            font-size: 0.85rem;
+            color: #ccc;
+            margin: 0;
+            line-height: 1.3;
+        }
+
+        @keyframes slideInToast {
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* --- FOOTER --- */
         .site-footer {
             background: #000;
             border-top: 1px solid var(--border);
@@ -455,6 +524,31 @@
             margin-top: 5px;
         }
 
+        /* --- SCROLLBAR --- */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-body);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #3f3f46;
+            border-radius: 5px;
+            border: 2px solid var(--bg-body);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: var(--primary);
+        }
+
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary) var(--bg-body);
+        }
+
         @keyframes fadeUp {
             from {
                 opacity: 0;
@@ -488,6 +582,18 @@
             .nav-scroll {
                 width: 100%;
             }
+
+            #notify-container {
+                left: 20px;
+                right: 20px;
+                bottom: 20px;
+                align-items: center;
+            }
+
+            .news-toast {
+                width: 100%;
+                max-width: none;
+            }
         }
     </style>
 </head>
@@ -511,6 +617,8 @@
             </div>
         </div>
     </header>
+
+    <div id="notify-container"></div>
 
     <main class="container">
         <div id="feedView">
@@ -536,8 +644,8 @@
                             <span id="detailEdited"
                                 style="font-style:italic; color:var(--primary); margin-left:10px; display:none;"></span>
                         </span>
-                        <span class="author-box">✍️ Escrito por <strong style="color:white;">${news.author || 'Kauan
-                                Bryan'}</strong></span>
+                        <span class="author-box">✍️ Escrito por <strong id="detailAuthor"
+                                style="color:white;"></strong></span>
                     </div>
                 </div>
             </div>
@@ -555,28 +663,19 @@
         <div class="container">
             <div class="logo" style="margin-bottom: 10px; font-size: 1.5rem;">NERD<span>GEEK</span></div>
             <div class="socials">
-                <a href="#" class="social-link" title="Instagram">
-                    <svg viewBox="0 0 24 24">
+                <a href="#" class="social-link" title="Instagram"><svg viewBox="0 0 24 24">
                         <path
                             d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                    </svg>
-                </a>
-
-                <a href="#" class="social-link" title="TikTok">
-                    <svg viewBox="0 0 24 24">
+                    </svg></a>
+                <a href="#" class="social-link" title="TikTok"><svg viewBox="0 0 24 24">
                         <path
                             d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
-                    </svg>
-                </a>
-
-                <a href="#" class="social-link" title="YouTube">
-                    <svg viewBox="0 0 24 24">
+                    </svg></a>
+                <a href="#" class="social-link" title="YouTube"><svg viewBox="0 0 24 24">
                         <path
                             d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
-                    </svg>
-                </a>
+                    </svg></a>
             </div>
-
             <div style="color: #444; font-size: 0.8rem; line-height: 1.6;">
                 &copy; 2025 NerdGeek. Powered by Firebase.<br>
                 Projetado por <strong style="color: var(--primary);">Kauan Bryan</strong>.
@@ -607,21 +706,64 @@
         let currentFilter = 'all';
         let currentSearch = '';
         let currentPage = 1;
+        let isFirstLoad = true; // Controla se é a primeira carga para não notificar tudo de uma vez
 
-        // IMPORTANTE: Agora ordena por 'orderId' para respeitar o Drag & Drop do Admin
-        // Se a ordem parecer errada inicialmente, entre no Admin e arraste um item para "acordar" a nova ordenação
+        // --- LISTENER EM TEMPO REAL COM NOTIFICAÇÃO ---
         onSnapshot(query(newsCollection, orderBy("orderId", "desc")), (snapshot) => {
+            // Verifica mudanças para disparar notificação
+            if (!isFirstLoad) {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "added") {
+                        showNotification(change.doc.data());
+                    }
+                });
+            }
+
             allNews = [];
             snapshot.forEach(doc => allNews.push({ id: doc.id, ...doc.data() }));
             renderGrid();
+
+            isFirstLoad = false; // Após a primeira renderização, habilita as notificações
         });
+
+        // --- FUNÇÃO DE NOTIFICAÇÃO ESTILIZADA ---
+        function showNotification(news) {
+            const container = document.getElementById('notify-container');
+            const toast = document.createElement('div');
+            toast.className = 'news-toast';
+            toast.innerHTML = `
+                <div class="toast-icon">🚀</div>
+                <div class="toast-content">
+                    <h4>Nova publicação!</h4>
+                    <p>${news.title.substring(0, 45)}${news.title.length > 45 ? '...' : ''}</p>
+                </div>
+            `;
+
+            // Som suave de notificação (opcional)
+            const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3');
+            audio.volume = 0.4;
+            audio.play().catch(e => console.log('Autoplay bloqueado pelo navegador'));
+
+            toast.onclick = () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                toast.remove();
+            };
+
+            container.appendChild(toast);
+
+            // Remove automaticamente após 6 segundos
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100px)';
+                setTimeout(() => toast.remove(), 500);
+            }, 6000);
+        }
 
         function renderGrid() {
             const grid = document.getElementById('newsGrid');
             const paginationDiv = document.getElementById('pagination');
-            grid.innerHTML = '';
-            paginationDiv.innerHTML = '';
 
+            // Se o usuário estiver pesquisando ou filtrando, filtramos a lista
             const filtered = allNews.filter(item => {
                 const matchCat = currentFilter === 'all' || item.category === currentFilter;
                 const matchSearch = item.title.toLowerCase().includes(currentSearch.toLowerCase());
@@ -631,6 +773,9 @@
             const pageTitle = document.getElementById('pageTitle');
             if (currentSearch) pageTitle.innerHTML = `Busca: <span style="color:var(--primary)">"${currentSearch}"</span>`;
             else pageTitle.innerHTML = currentFilter === 'all' ? 'Destaques' : `Categoria: <span style="color:var(--primary)">${currentFilter.toUpperCase()}</span>`;
+
+            grid.innerHTML = '';
+            paginationDiv.innerHTML = '';
 
             if (filtered.length === 0) {
                 grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:50px; color:#666;">Nenhum conteúdo encontrado.</div>';
@@ -683,8 +828,8 @@
             document.getElementById('detailCategory').className = `tag ${news.category}`;
             document.getElementById('detailCategory').innerText = news.category;
             document.getElementById('detailDate').innerText = news.dateDisplay;
+            document.getElementById('detailAuthor').innerText = news.author || 'Kauan Bryan';
 
-            // LÓGICA DO SELO DE EDITADO
             const editSpan = document.getElementById('detailEdited');
             if (news.lastEdited) {
                 const editDate = new Date(news.lastEdited).toLocaleDateString('pt-BR');
