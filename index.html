@@ -140,6 +140,10 @@
             transition: 0.3s;
             position: relative;
             font-size: 1.2rem;
+
+            /* Garante o formato redondo mesmo em telas apertadas */
+            flex-shrink: 0;
+            min-width: 40px;
         }
 
         .notify-btn:hover {
@@ -610,6 +614,7 @@
             }
         }
 
+        /* --- CSS RESPONSIVO (CORRIGIDO) --- */
         @media(max-width: 768px) {
             .header-content {
                 flex-direction: column;
@@ -617,7 +622,15 @@
             }
 
             .search-box {
-                max-width: 100%;
+                /* A caixa de pesquisa agora ocupa o espaço restante */
+                flex-grow: 1;
+                max-width: none;
+            }
+
+            .notify-btn {
+                /* Garante o formato redondo e o tamanho fixo no celular */
+                min-width: 40px;
+                flex-shrink: 0;
             }
 
             .article-title {
