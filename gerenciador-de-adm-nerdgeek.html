@@ -6,6 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>NerdGeek | Admin</title>
     <link rel="shortcut icon" href="favicon.png" type="image/x-icon">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://nerdgeek.netlify.app/gerenciador-de-adm-nerdgeek.html">
+    <meta property="og:title" content="NerdGeek | Admin">
+    <meta property="og:description" content="Seu lugar privado para gerenciar notícias e conteúdo do portal NerdGeek!">
+    <meta property="og:image" content="https://nerdgeek.netlify.app/nerd-geek-icon-adm.png">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="NerdGeek | Admin">
+    <meta name="twitter:description" content="Seu lugar privado para gerenciar notícias e conteúdo do portal NerdGeek!">
+    <meta name="twitter:image" content="https://nerdgeek.netlify.app/nerd-geek-icon-adm.png">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=Inter:wght@400;600&display=swap"
         rel="stylesheet">
     <style>
@@ -482,6 +492,7 @@
             const content = document.getElementById('content').value.trim();
             const videoUrl = document.getElementById('videoUrl').value.trim();
             const sourceName = document.getElementById('sourceName').value.trim();
+            const author = document.getElementById('authorName').value.trim() || 'Kauan Bryan';
 
             const pollQ = document.getElementById('pollQuestion').value.trim();
             const pollOpt1 = document.getElementById('pollOpt1').value.trim();
@@ -497,7 +508,7 @@
             const now = new Date();
 
             const payload = {
-                title, category, image, content, videoUrl, sourceName
+                title, category, image, content, videoUrl, sourceName, author
             };
 
             if (poll) payload.poll = poll;
@@ -532,6 +543,7 @@
             document.getElementById('content').value = item.content;
             document.getElementById('videoUrl').value = item.videoUrl || '';
             document.getElementById('sourceName').value = item.sourceName || '';
+            document.getElementById('authorName').value = item.author || 'Kauan Bryan';
 
             if (item.poll) {
                 document.getElementById('pollQuestion').value = item.poll.question;
