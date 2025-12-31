@@ -139,11 +139,19 @@
             justify-content: center;
             transition: 0.3s;
             position: relative;
+            font-size: 1.2rem;
         }
 
         .notify-btn:hover {
             background: var(--primary);
             border-color: var(--primary);
+        }
+
+        /* ESTADO ATIVO (VERDE) */
+        .notify-btn.active {
+            color: #4ade80;
+            border-color: #4ade80;
+            background: rgba(74, 222, 128, 0.1);
         }
 
         .notify-btn.active::after {
@@ -156,6 +164,13 @@
             background: #4ade80;
             border-radius: 50%;
             border: 2px solid var(--bg-body);
+            box-shadow: 0 0 5px #4ade80;
+        }
+
+        /* ESTADO SILENCIADO (VERMELHO) */
+        .notify-btn.muted {
+            color: #f87171;
+            border-color: rgba(248, 113, 113, 0.3);
         }
 
         .nav-scroll {
@@ -444,7 +459,7 @@
             font-weight: 600;
         }
 
-        /* --- TOAST (MANTIDO COMO BACKUP VISUAL) --- */
+        /* --- TOAST --- */
         #notify-container {
             position: fixed;
             bottom: 30px;
@@ -642,7 +657,7 @@
                     <span class="search-icon">🔍</span>
                     <input type="text" class="search-input" id="searchInput" placeholder="Pesquisar notícias...">
                 </div>
-                <button class="notify-btn" id="notifyBtn" onclick="requestPermission()" title="Ativar Notificações">
+                <button class="notify-btn" id="notifyBtn" onclick="toggleNotifications()" title="Notificações">
                     🔔
                 </button>
             </div>
@@ -750,56 +765,113 @@
         let currentPage = 1;
         let isFirstLoad = true;
 
-        // --- SOLICITAR PERMISSÃO DO NAVEGADOR ---
-        window.requestPermission = () => {
+        // --- SISTEMA DE NOTIFICAÇÃO ON/OFF ---
+
+        // Verifica se o usuário silenciou manualmente
+        let isMuted = localStorage.getItem('nerdgeek_muted') === 'true';
+
+        window.toggleNotifications = () => {
+            const btn = document.getElementById('notifyBtn');
+
+            // 1. Se o navegador não suporta ou negou
             if (!("Notification" in window)) {
-                alert("Este navegador não suporta notificações de sistema.");
+                alert("Navegador sem suporte."); return;
+            }
+            if (Notification.permission === "denied") {
+                alert("As notificações estão bloqueadas no seu navegador. Você precisa desbloquear nas configurações do site (cadeado na barra de endereço).");
                 return;
             }
 
-            if (Notification.permission === "granted") {
-                // Já tem permissão
-                new Notification("NerdGeek", { body: "As notificações já estão ativas! 🚀", icon: "favicon.png" });
-            } else if (Notification.permission !== "denied") {
+            // 2. Se ainda não pediu permissão, pede agora
+            if (Notification.permission === "default") {
                 Notification.requestPermission().then(permission => {
                     if (permission === "granted") {
-                        new Notification("NerdGeek", { body: "Notificações ativadas com sucesso!", icon: "favicon.png" });
+                        isMuted = false;
+                        localStorage.setItem('nerdgeek_muted', 'false');
+                        new Notification("NerdGeek", { body: "Notificações ativadas! 🔔", icon: "favicon.png" });
                         updateBellIcon();
                     }
                 });
+                return;
+            }
+
+            // 3. Se já tem permissão: Lógica de Ligar/Desligar (Mute)
+            if (Notification.permission === "granted") {
+                if (isMuted) {
+                    // Estava mudo, vamos ligar
+                    isMuted = false;
+                    localStorage.setItem('nerdgeek_muted', 'false');
+                    // Feedback visual rápido (Toast pequeno)
+                    showToastSystem("Notificações Ativadas", "success");
+                } else {
+                    // Estava ligado, pergunta se quer desligar
+                    if (confirm("Deseja silenciar as notificações de novas notícias?")) {
+                        isMuted = true;
+                        localStorage.setItem('nerdgeek_muted', 'true');
+                        showToastSystem("Notificações Silenciadas", "error");
+                    }
+                }
+                updateBellIcon();
             }
         }
 
         function updateBellIcon() {
             const btn = document.getElementById('notifyBtn');
+            btn.className = 'notify-btn'; // Reseta classes
+
             if (Notification.permission === 'granted') {
-                btn.classList.add('active');
-                btn.title = "Notificações Ativas";
+                if (isMuted) {
+                    btn.classList.add('muted');
+                    btn.innerText = '🔕';
+                    btn.title = "Notificações Silenciadas (Clique para ativar)";
+                } else {
+                    btn.classList.add('active');
+                    btn.innerText = '🔔';
+                    btn.title = "Notificações Ativas (Clique para silenciar)";
+                }
+            } else {
+                btn.innerText = '🔔';
+                btn.title = "Ativar Notificações";
             }
         }
-        updateBellIcon(); // Checa ao carregar
 
-        // --- LISTENER COM NOTIFICAÇÃO NATIVA E TOAST ---
+        // Função auxiliar só para feedback da ação do botão
+        function showToastSystem(msg, type) {
+            const container = document.getElementById('notify-container');
+            const toast = document.createElement('div');
+            toast.className = 'news-toast';
+            toast.style.borderLeftColor = type === 'success' ? '#4ade80' : '#f87171';
+            toast.innerHTML = `<div class="toast-content" style="padding:0;"><h4 style="margin:0; color:${type === 'success' ? '#4ade80' : '#f87171'}">${msg}</h4></div>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
+        }
+
+        // Inicializa ícone ao carregar
+        updateBellIcon();
+
+        // --- LISTENER (RECEBE AS NOTÍCIAS) ---
         onSnapshot(query(newsCollection, orderBy("orderId", "desc")), (snapshot) => {
             if (!isFirstLoad) {
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === "added") {
-                        const newsData = change.doc.data();
-                        showNotification(newsData);
+                        // SÓ MOSTRA SE NÃO ESTIVER MUTADO!
+                        if (!isMuted) {
+                            showNotification(change.doc.data());
+                        } else {
+                            console.log("Notícia recebida, mas usuário silenciou.");
+                        }
                     }
                 });
             }
-
             allNews = [];
             snapshot.forEach(doc => allNews.push({ id: doc.id, ...doc.data() }));
             renderGrid();
-
             isFirstLoad = false;
         });
 
-        // --- FUNÇÃO DE NOTIFICAÇÃO NATIVA DO SISTEMA ---
+        // --- DISPARO DE NOTIFICAÇÃO ---
         function showNotification(news) {
-            // 1. Toca o alerta visual no site (Toast)
+            // Toast Visual
             const container = document.getElementById('notify-container');
             const toast = document.createElement('div');
             toast.className = 'news-toast';
@@ -810,25 +882,25 @@
                     <p>${news.title.substring(0, 45)}...</p>
                 </div>
             `;
+
             const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3');
             audio.volume = 0.4;
-            audio.play().catch(e => console.log('Autoplay audio block'));
+            audio.play().catch(e => { }); // Ignora erro de autoplay
 
             toast.onclick = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); toast.remove(); };
             container.appendChild(toast);
-            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(100px)'; setTimeout(() => toast.remove(), 500); }, 6000);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 6000);
 
-            // 2. DISPARA NOTIFICAÇÃO DO SISTEMA (WINDOWS/ANDROID)
+            // Notificação Nativa (Windows/Android)
             if (Notification.permission === "granted") {
                 const notif = new Notification(`NerdGeek: ${news.category.toUpperCase()}`, {
                     body: news.title,
-                    icon: news.image || 'favicon.png', // Tenta usar a imagem da notícia ou o ícone
-                    tag: news.id // Evita duplicação
+                    icon: news.image || 'favicon.png',
+                    tag: news.id
                 });
-
                 notif.onclick = function () {
                     window.focus();
-                    window.openDetails(news.id); // Abre a notícia direto se clicar na notificação
+                    window.openDetails(news.id);
                     this.close();
                 };
             }
@@ -1023,6 +1095,3 @@
             renderGrid();
         });
     </script>
-</body>
-
-</html>
